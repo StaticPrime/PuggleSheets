@@ -47,7 +47,8 @@ enum DateMath {
         case 2: return (to - from) / 360
         case 3: return (to - from) / 365
         case 4:
-            return Double((b.year - a.year) * 360 + (b.month - a.month) * 30 + (min(b.day, 30) - min(a.day, 30))) / 360
+            let startDay: Int = min(a.day, 30), endDay: Int = min(b.day, 30)
+            return Double(days360(from: a, to: b, startDay: startDay, endDay: endDay)) / 360
         default:
             var d1 = a.day, d2 = b.day
             let startIsLastOfFebruary = a.month == 2 && d1 == DateSerial.daysInMonth(year: a.year, month: 2)
@@ -56,8 +57,17 @@ enum DateMath {
             if startIsLastOfFebruary { d1 = 30 }
             if d2 == 31, d1 >= 30 { d2 = 30 }
             if d1 == 31 { d1 = 30 }
-            return Double((b.year - a.year) * 360 + (b.month - a.month) * 30 + (d2 - d1)) / 360
+            return Double(days360(from: a, to: b, startDay: d1, endDay: d2)) / 360
         }
+    }
+
+    /// Days between two dates on a calendar of twelve 30-day months, with each date's day already adjusted.
+    /// Spelled out step by step so the compiler type-checks it quickly.
+    private static func days360(from a: DateSerial.Parts, to b: DateSerial.Parts, startDay: Int, endDay: Int) -> Int {
+        let years: Int = b.year - a.year
+        let months: Int = b.month - a.month
+        let days: Int = endDay - startDay
+        return years * 360 + months * 30 + days
     }
 }
 
