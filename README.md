@@ -107,6 +107,18 @@ This builds `build/PuggleSheets.pkg`, which installs PuggleSheets.app in /Applic
 
 There's no Developer ID yet, so the installer is unsigned and the app is ad-hoc signed. The installer opens normally on the Mac that built it. A copy that arrives by download, email or AirDrop is blocked the first time: try to open it, then click **Open Anyway** in System Settings ▸ Privacy & Security.
 
+### Releasing a new version
+
+Versions are MAJOR.MINOR.FIX. To release the next one, run this on `main`, up to date with GitHub and with everything committed:
+
+```sh
+Tools/release.sh            # a fix:          1.2.3 → 1.2.4
+Tools/release.sh minor      # a minor update: 1.2.3 → 1.3.0
+Tools/release.sh major      # a major update: 1.2.3 → 2.0.0
+```
+
+The script raises the version and the build number in the Xcode project, commits "Release version 1.2.4", tags it `v1.2.4` and pushes both. The tag starts the Release workflow on GitHub, which runs the package tests, builds the installer with `Tools/make-installer.sh` and publishes it as a GitHub release. The installer keeps the same name in every release, so https://github.com/StaticPrime/PuggleSheets/releases/latest/download/PuggleSheets.pkg always downloads the newest one. `Tools/release.sh --dry-run` shows the next version without changing anything.
+
 ## Tests
 
 The spreadsheet model, formula engine, rules, number formats and file formats live in a Swift package with 634 unit tests, including randomized checks that incremental recalculation (spilled arrays included) always matches a full one and that damaged files never crash the readers:
@@ -146,6 +158,7 @@ Packages/PuggleSheetsKit/   Spreadsheet model, formula engine, number formats an
   Editing/                  Workbook-wide edits (rows, columns, sheets) that rewrite formulas
 Tools/make-icons.swift      Regenerates the app icon PNGs
 Tools/make-installer.sh     Builds the PuggleSheets.pkg installer
+Tools/release.sh            Releases the next version (see Releasing a new version)
 ```
 
 ## How it works

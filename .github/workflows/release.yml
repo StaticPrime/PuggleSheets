@@ -1,0 +1,50 @@
+# Builds the installer for a version tag (vMAJOR.MINOR.FIX, pushed by Tools/release.sh) and publishes
+# it as a GitHub release. The installer keeps the same name in every release, so
+# https://github.com/<owner>/<repo>/releases/latest/download/<App>.pkg always downloads the newest one.
+name: Release
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish the installer
+    runs-on: xcode-27
+    timeout-minutes: 60
+    steps:
+      - name: Check out the tag
+        # actions/checkout v7.0.1, pinned to its commit.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Check that the tag matches the app's version
+        run: |
+          app=$(basename *.xcodeproj .xcodeproj)
+          version=$(grep -o 'MARKETING_VERSION = [^;]*;' "$app.xcodeproj/project.pbxproj" | sort -u | sed -E 's/.* = "?([^";]*)"?;/\1/')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::The tag is $GITHUB_REF_NAME but the project's MARKETING_VERSION is $version. Release with Tools/release.sh, which keeps them together."
+            exit 1
+          fi
+          echo "APP=$app" >> "$GITHUB_ENV"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          xcodebuild -version
+
+      - name: Run the package tests
+        run: swift test --package-path "Packages/${APP}Kit"
+
+      - name: Build the installer
+        run: Tools/make-installer.sh
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "build/$APP.pkg" \
+            --verify-tag --latest --generate-notes --title "$APP $VERSION"
