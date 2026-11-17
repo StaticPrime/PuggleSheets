@@ -10,14 +10,12 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: release
-  cancel-in-progress: false
-
 jobs:
   release:
     name: Build and publish the installer
-    runs-on: xcode-27
+    # GitHub's standard macOS 26 image (Apple silicon, Xcode 26). The xcode-27 image is still a preview
+    # and its jobs can wait a long time for a machine. The apps target macOS 14, so either Xcode builds them.
+    runs-on: macos-26
     timeout-minutes: 60
     steps:
       - name: Check out the tag
@@ -36,11 +34,21 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
           xcodebuild -version
 
+      # Failures are repeated as error annotations, so they show on the run's summary page.
       - name: Run the package tests
-        run: swift test --package-path "Packages/${APP}Kit"
+        run: |
+          set -o pipefail
+          if ! swift test --package-path "Packages/${APP}Kit" 2>&1 | tee "$RUNNER_TEMP/tests.log"; then
+            grep -E "error:|✘" "$RUNNER_TEMP/tests.log" | head -20 | sed 's/^/::error::/'
+            exit 1
+          fi
 
       - name: Build the installer
-        run: Tools/make-installer.sh
+        run: |
+          if ! Tools/make-installer.sh; then
+            grep -E "error:" build/Installer/build.log | sort -u | head -20 | sed 's/^/::error::/'
+            exit 1
+          fi
 
       - name: Publish the release
         env:
