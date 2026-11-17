@@ -34,19 +34,29 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
           xcodebuild -version
 
-      # Failures are repeated as error annotations, so they show on the run's summary page.
+      # A failure is repeated as an error annotation (its errors, or else the last lines of its output),
+      # so the reason shows on the run's summary page. The installer is built even when tests fail, so one
+      # run reports every problem; nothing is published unless both succeed.
       - name: Run the package tests
         run: |
           set -o pipefail
           if ! swift test --package-path "Packages/${APP}Kit" 2>&1 | tee "$RUNNER_TEMP/tests.log"; then
-            grep -E "error:|✘" "$RUNNER_TEMP/tests.log" | head -20 | sed 's/^/::error::/'
+            lines=$(grep -E "error:|✘" "$RUNNER_TEMP/tests.log" | sort -u | head -15 || true)
+            [ -n "$lines" ] || lines=$(tail -25 "$RUNNER_TEMP/tests.log")
+            lines=${lines//'%'/'%25'}; lines=${lines//$'\r'/}; lines=${lines//$'\n'/'%0A'}
+            echo "::error title=Package tests failed::$lines"
             exit 1
           fi
 
       - name: Build the installer
+        if: ${{ !cancelled() }}
         run: |
-          if ! Tools/make-installer.sh; then
-            grep -E "error:" build/Installer/build.log | sort -u | head -20 | sed 's/^/::error::/'
+          set -o pipefail
+          if ! Tools/make-installer.sh 2>&1 | tee "$RUNNER_TEMP/installer.log"; then
+            lines=$(grep -E "error:" build/Installer/build.log 2>/dev/null | sort -u | head -15 || true)
+            [ -n "$lines" ] || lines=$(tail -25 "$RUNNER_TEMP/installer.log")
+            lines=${lines//'%'/'%25'}; lines=${lines//$'\r'/}; lines=${lines//$'\n'/'%0A'}
+            echo "::error title=Installer build failed::$lines"
             exit 1
           fi
 
