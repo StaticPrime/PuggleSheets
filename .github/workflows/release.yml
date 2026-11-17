@@ -54,6 +54,7 @@ jobs:
           set -o pipefail
           if ! Tools/make-installer.sh 2>&1 | tee "$RUNNER_TEMP/installer.log"; then
             lines=$(grep -E "error:" build/Installer/build.log 2>/dev/null | sort -u | head -15 || true)
+            [ -n "$lines" ] || lines=$(grep -v -E "^\s*$" build/Installer/build.log 2>/dev/null | tail -60 || true)
             [ -n "$lines" ] || lines=$(tail -25 "$RUNNER_TEMP/installer.log")
             lines=${lines//'%'/'%25'}; lines=${lines//$'\r'/}; lines=${lines//$'\n'/'%0A'}
             echo "::error title=Installer build failed::$lines"
