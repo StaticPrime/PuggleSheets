@@ -36,8 +36,10 @@ enum ChartFixtures {
         ChartTable(labels: (0..<count).map { numeric ? String($0 + 1) : "Item \($0 + 1)" },
                    labelValues: (0..<count).map { numeric ? Double($0 + 1) : nil }, labelFormat: nil, labelHeading: "Item",
                    series: (0..<2).map { series in
-                       ChartTable.Series(name: "Series \(series + 1)", values: (0..<count).map { index in
-                           100 + 50 * sin(Double(index + series * 7) / 9) + Double((index * 31) % 17)
+                       ChartTable.Series(name: "Series \(series + 1)", values: (0..<count).map { (index: Int) -> Double? in
+                           let wave: Double = 50 * sin(Double(index + series * 7) / 9)
+                           let jitter: Double = Double((index * 31) % 17)
+                           return 100 + wave + jitter
                        })
                    })
     }
