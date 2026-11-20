@@ -25,14 +25,15 @@ struct SheetBar: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            ToolbarIconButton(symbol: "plus", help: "Add Sheet") { actions.addSheet() }
+            ToolbarIconButton(symbol: "plus", help: "Add Sheet", isEnabled: state.isEditable) { actions.addSheet() }
             ToolbarDropdown(help: "All Sheets", showsChevron: false, open: { actions.showAllSheetsMenu(from: $0) }) {
                 Image(systemName: "line.3.horizontal").font(.system(size: 14)).foregroundStyle(Theme.secondaryText)
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 2) {
                     ForEach(state.sheets) { tab in
-                        SheetTabView(tab: tab, isActive: tab.id == state.activeSheetID, renameRequest: state.renameSheetRequest, actions: actions)
+                        SheetTabView(tab: tab, isActive: tab.id == state.activeSheetID, isEditable: state.isEditable,
+                                     renameRequest: state.renameSheetRequest, actions: actions)
                     }
                 }
                 .padding(.horizontal, 4)
@@ -59,6 +60,8 @@ struct SheetBar: View {
 struct SheetTabView: View {
     let tab: SheetTab
     let isActive: Bool
+    /// False while the spreadsheet can't be changed, such as a shared one while iCloud can't be reached.
+    let isEditable: Bool
     let renameRequest: Int
     let actions: SheetBarActions
     @State private var isRenaming = false
@@ -119,25 +122,30 @@ struct SheetTabView: View {
             }
         }
         .contextMenu {
-            Button("Delete") { actions.deleteSheet(tab.id) }
-            Button("Duplicate") { actions.duplicateSheet(tab.id) }
-            Button("Rename") { startRenaming() }
-            Menu("Change color") {
-                Button("Reset") { actions.setTabColor(tab.id, nil) }
-                ForEach(ColorPalette.brightRow + ColorPalette.shadeRows[3]) { swatch in
-                    Button(swatch.name.capitalized) { actions.setTabColor(tab.id, RGBColor(hex: swatch.hex)) }
+            Group {
+                Button("Delete") { actions.deleteSheet(tab.id) }
+                Button("Duplicate") { actions.duplicateSheet(tab.id) }
+                Button("Rename") { startRenaming() }
+                Menu("Change color") {
+                    Button("Reset") { actions.setTabColor(tab.id, nil) }
+                    ForEach(ColorPalette.brightRow + ColorPalette.shadeRows[3]) { swatch in
+                        Button(swatch.name.capitalized) { actions.setTabColor(tab.id, RGBColor(hex: swatch.hex)) }
+                    }
                 }
+                Divider()
+                Button("Move right") { actions.moveSheet(tab.id, by: 1) }
+                Button("Move left") { actions.moveSheet(tab.id, by: -1) }
             }
-            Divider()
-            Button("Move right") { actions.moveSheet(tab.id, by: 1) }
-            Button("Move left") { actions.moveSheet(tab.id, by: -1) }
+            .disabled(!isEditable)
         }
         .onChange(of: renameRequest) { _, _ in if isActive { startRenaming() } }
+        .onChange(of: isEditable) { _, editable in if !editable && isRenaming { isRenaming = false } }
         .onChange(of: focused) { _, isFocused in if !isFocused && isRenaming { commit() } }
         .help(tab.name)
     }
 
     private func startRenaming() {
+        guard isEditable else { return }
         if !isActive { actions.showSheet(tab.id) }
         text = tab.name
         isRenaming = true

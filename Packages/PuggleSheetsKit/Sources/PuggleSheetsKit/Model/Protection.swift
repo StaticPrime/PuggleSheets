@@ -2,8 +2,8 @@ import Foundation
 
 /// Data ▸ Protect sheets and ranges: cells that warn before they change, or that can't be changed
 /// until the protection is removed.
-public struct ProtectedRange: Identifiable, Hashable, Sendable {
-    public enum Scope: Hashable, Sendable {
+public struct ProtectedRange: Identifiable, Hashable, Sendable, Codable {
+    public enum Scope: Hashable, Sendable, Codable {
         case range(CellRange)
         /// The whole sheet, except these ranges.
         case sheet(except: [CellRange])

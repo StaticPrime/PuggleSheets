@@ -50,7 +50,7 @@ extension SpreadsheetController {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         var cell = sheet[address]
-        let comment = Comment(author: commentAuthor, text: trimmed)
+        let comment = Comment(author: commentAuthor, authorID: collaboration?.me?.id, text: trimmed)
         if var thread = cell.comment {
             thread.comments.append(comment)
             thread.isResolved = false
@@ -91,6 +91,20 @@ extension SpreadsheetController {
         thread.isResolved = resolved
         cell.comment = thread
         perform([.cells(sheet: activeSheetID, [address: cell])], actionName: resolved ? "Resolve Comment" : "Reopen Comment")
+    }
+
+    /// In a shared spreadsheet, people edit only the comments they wrote (the owner, those written before it was
+    /// shared too).
+    func mayEditComment(_ comment: Comment) -> Bool {
+        // While a shared spreadsheet can't save to iCloud, comments show but don't change.
+        guard state.access != .offline else { return false }
+        guard let collaboration, collaboration.isLive, let me = collaboration.me?.id else { return true }
+        return comment.authorID == me || (comment.authorID == nil && collaboration.isOwner)
+    }
+
+    /// And delete the ones they wrote, or any if they can edit the spreadsheet.
+    func mayDeleteComment(_ comment: Comment) -> Bool {
+        state.access != .offline && (mayEditComment(comment) || state.access == .full)
     }
 
     /// Every comment thread in the workbook, sheet by sheet in row order.

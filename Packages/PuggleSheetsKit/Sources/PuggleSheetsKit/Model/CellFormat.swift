@@ -1,7 +1,7 @@
 import Foundation
 
 /// An opaque sRGB color.
-public struct RGBColor: Hashable, Sendable, CustomStringConvertible {
+public struct RGBColor: Hashable, Sendable, CustomStringConvertible, Codable {
     public var red: UInt8
     public var green: UInt8
     public var blue: UInt8
@@ -28,16 +28,16 @@ public struct RGBColor: Hashable, Sendable, CustomStringConvertible {
     public static let white = RGBColor(red: 255, green: 255, blue: 255)
 }
 
-public enum HorizontalAlignment: String, CaseIterable, Sendable {
+public enum HorizontalAlignment: String, CaseIterable, Sendable, Codable {
     case left, center, right
 }
 
-public enum VerticalAlignment: String, CaseIterable, Sendable {
+public enum VerticalAlignment: String, CaseIterable, Sendable, Codable {
     case top, middle, bottom
 }
 
 /// What happens to text wider than its cell.
-public enum WrapStrategy: String, CaseIterable, Sendable {
+public enum WrapStrategy: String, CaseIterable, Sendable, Codable {
     /// Spills into empty neighboring cells (the default).
     case overflow
     /// Breaks into lines; the row grows to fit unless its height was set by hand.
@@ -48,16 +48,16 @@ public enum WrapStrategy: String, CaseIterable, Sendable {
 
 /// Format ▸ Rotation: text turned by an angle from -90 to 90 degrees (positive turns it up, counterclockwise),
 /// or stacked one character per line.
-public enum TextRotation: Hashable, Sendable {
+public enum TextRotation: Hashable, Sendable, Codable {
     case angle(Int)
     case stacked
 }
 
-public enum BorderStyle: String, CaseIterable, Sendable {
+public enum BorderStyle: String, CaseIterable, Sendable, Codable {
     case thin, medium, thick, dashed, dotted, double
 }
 
-public struct BorderLine: Hashable, Sendable {
+public struct BorderLine: Hashable, Sendable, Codable {
     public var style: BorderStyle
     public var color: RGBColor
 
@@ -68,7 +68,7 @@ public struct BorderLine: Hashable, Sendable {
 }
 
 /// The borders drawn on each side of a cell. A line between two cells may be stored on either side.
-public struct CellBorders: Hashable, Sendable {
+public struct CellBorders: Hashable, Sendable, Codable {
     public var top: BorderLine?
     public var left: BorderLine?
     public var bottom: BorderLine?

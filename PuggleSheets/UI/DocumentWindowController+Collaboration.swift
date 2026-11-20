@@ -77,7 +77,7 @@ extension DocumentWindowController {
     /// The thread of the active cell beside it (or the composer for a new comment).
     func updateCommentCard() {
         let address = controller.selection.active
-        if let composing = composingComment, composing != address { composingComment = nil }
+        if let composing = composingComment, composing != address || !state.canComment { composingComment = nil }
         guard let contentView = window?.contentView, grid.editor == nil, controller.selectedObjectID == nil,
               controller.selection.ranges.count == 1 else {
             commentCard?.isHidden = true
@@ -101,7 +101,10 @@ extension DocumentWindowController {
                                        self?.composingComment = nil
                                        self?.updateCommentCard()
                                        self?.focusGrid()
-                                   })
+                                   },
+                                   canEdit: { [weak self] in self?.controller.mayEditComment($0) ?? false },
+                                   canDelete: { [weak self] in self?.controller.mayDeleteComment($0) ?? false },
+                                   isReadOnly: !state.canComment)
         let card: NSHostingView<CommentCardView>
         if let existing = commentCard {
             existing.rootView = view

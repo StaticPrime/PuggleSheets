@@ -2,7 +2,7 @@ import Foundation
 
 /// Data ▸ Group rows or columns: a band of rows (or columns) that collapses to a + button. Groups can
 /// sit inside one another.
-public struct OutlineGroup: Hashable, Sendable {
+public struct OutlineGroup: Hashable, Sendable, Codable {
     /// Row or column indexes.
     public var range: ClosedRange<Int>
     public var isCollapsed: Bool

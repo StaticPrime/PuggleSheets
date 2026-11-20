@@ -2,7 +2,7 @@ import Foundation
 
 /// Format ▸ Convert to table: a named block of data with a header row, column types, colors and its
 /// own filter. Formulas refer to it as Table1[Column], Table1[#ALL] and so on.
-public struct SheetTable: Identifiable, Hashable, Sendable {
+public struct SheetTable: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     /// Unique in the workbook (among tables and named ranges), like a named range's name.
     public var name: String
@@ -41,7 +41,7 @@ public struct SheetTable: Identifiable, Hashable, Sendable {
 }
 
 /// A table column's type: it sets the number format of the column's cells, or makes them checkboxes or a dropdown.
-public enum TableColumnType: Hashable, Sendable {
+public enum TableColumnType: Hashable, Sendable, Codable {
     case text, number, percent, currency, date, time, dateTime, checkbox
     case dropdown([String])
 

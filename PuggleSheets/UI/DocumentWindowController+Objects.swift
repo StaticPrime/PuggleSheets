@@ -39,11 +39,15 @@ extension DocumentWindowController {
     func objectMenu(for id: UUID) -> NSMenu? {
         guard let object = controller.object(id: id) else { return nil }
         let menu = NSMenu()
-        func add(_ title: String, symbol: String? = nil, _ action: @escaping () -> Void) {
+        // Only copying and downloading work while the spreadsheet can't be changed.
+        let editable = state.isEditable
+        menu.autoenablesItems = false
+        func add(_ title: String, symbol: String? = nil, changes: Bool = true, _ action: @escaping () -> Void) {
             let item = NSMenuItem(title: title, action: #selector(MenuAction.perform(_:)), keyEquivalent: "")
             let handler = MenuAction(action)
             item.target = handler
             item.representedObject = handler
+            item.isEnabled = editable || !changes
             if let symbol { item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
             menu.addItem(item)
         }
@@ -78,7 +82,7 @@ extension DocumentWindowController {
             add("Delete image", symbol: "trash") { [weak self] in self?.controller.removeObject(id: id) }
         }
         menu.addItem(.separator())
-        add("Copy", symbol: "doc.on.doc") { [weak self] in self?.copyObject(id: id, cut: false) }
+        add("Copy", symbol: "doc.on.doc", changes: false) { [weak self] in self?.copyObject(id: id, cut: false) }
         add("Alt text", symbol: "text.below.photo") { [weak self] in self?.editAltText(id: id) }
         add("Bring to front", symbol: "square.3.layers.3d.top.filled") { [weak self] in self?.controller.reorderObject(id: id, toFront: true) }
         add("Send to back", symbol: "square.3.layers.3d.bottom.filled") { [weak self] in self?.controller.reorderObject(id: id, toFront: false) }
@@ -309,7 +313,7 @@ extension DocumentWindowController {
     }
 
     func editPivotFilter(pivotID: UUID, index: Int) {
-        guard let (sheetIndex, pivot) = controller.pivotTable(id: pivotID), pivot.filters.indices.contains(index) else { return }
+        guard let (sheetIndex, pivot) = controller.pivotTable(id: pivotID), pivot.filters.indices.contains(index), allowsChanges() else { return }
         let filter = pivot.filters[index]
         let values = PivotEngine.sourceValues(column: filter.sourceColumn, for: pivot, sheetIndex: sheetIndex, workbook: controller.workbook)
         presentSheet { [weak self] dismiss in

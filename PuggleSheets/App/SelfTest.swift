@@ -8,6 +8,10 @@ import PuggleSheetsKit
 enum SelfTest {
     static func runIfRequested() {
         guard UserDefaults.standard.bool(forKey: "PSSelfTest") else { return }
+        if UserDefaults.standard.string(forKey: "PSSelfTestSuite") == "collaboration" {
+            CollaborationSelfTest.run()
+            return
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { run() }
     }
 

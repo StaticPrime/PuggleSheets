@@ -1,7 +1,7 @@
 import Foundation
 
 /// Rows, columns or cells inserted or deleted in one sheet.
-public enum StructuralChange: Hashable, Sendable {
+public enum StructuralChange: Hashable, Sendable, Codable {
     case insertRows(at: Int, count: Int)
     case deleteRows(at: Int, count: Int)
     case insertColumns(at: Int, count: Int)

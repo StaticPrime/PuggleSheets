@@ -8,10 +8,11 @@ PuggleSheets is a fast, familiar spreadsheet for the Mac, for budgets, gradebook
 - Charts, pivot tables, filters, slicers and conditional formatting
 - Tables, dropdowns, checkboxes and named ranges
 - Comments, notes and protected ranges
+- Collaborate live with other Mac users through iCloud, each person able to edit or only comment
 
 It opens and saves Excel (.xlsx), OpenDocument (.ods), CSV and TSV files, and exports PDF.
 
-PuggleSheets is free, needs no account and has no tracking. It runs inside Apple's app sandbox with no permission to use the network, on macOS 14 Sonoma or later with Apple silicon or Intel. It's written in Swift with AppKit and SwiftUI, and is part of the PuggleSoft family with [PuggleDocs](https://github.com/StaticPrime/PuggleDocs) and [PuggleSlides](https://github.com/StaticPrime/PuggleSlides).
+PuggleSheets is free, needs no account of its own and has no tracking. It runs inside Apple's app sandbox with no permission to use the network (macOS takes the spreadsheets you share to and from iCloud for it), on macOS 14 Sonoma or later with Apple silicon or Intel. It's written in Swift with AppKit and SwiftUI, and is part of the PuggleSoft family with [PuggleDocs](https://github.com/StaticPrime/PuggleDocs) and [PuggleSlides](https://github.com/StaticPrime/PuggleSlides).
 
 ## Features
 
@@ -62,6 +63,17 @@ PuggleSheets is free, needs no account and has no tracking. It runs inside Apple
 - **Notes.** Insert ▸ Note (⇧F2) adds a note that shows when you point at the cell, marked with a black corner. Notes copy and paste with their cells.
 - **Protected sheets and ranges.** Data ▸ Protect sheets and ranges protects a range or a whole sheet (with exceptions). A protection either warns before an edit (with "Don't show this again for 5 minutes") or refuses edits until it's removed. Protected sheets show a lock on their tab, and View ▸ Show ▸ Protected ranges stripes protected cells.
 
+### Collaboration
+
+- **Collaborate.** The Collaborate button in the header, left of Download (or File ▸ Collaborate…, ⌥⌘C), which only a spreadsheet's owner has, shares a spreadsheet with other people who use PuggleSheets on their Macs, through iCloud. A spreadsheet is kept on your Mac first: one that has never been saved asks where, and that file stays yours. Invite Collaborators sends the link by Messages, Mail or AirDrop, where you choose whether the people you invite can make changes; or choose Anyone with the Link, whether those people can edit or only comment, and Copy Link to pass it on yourself. Whoever clicks the link joins, and the spreadsheet opens for them in PuggleSheets. If clicking it opens a web page instead, copy the link and choose File ▸ Shared spreadsheets ▸ Open Invitation Link….
+- **Editing together.** Everyone's changes show on everyone else's Mac as they're made, a moment after each one and every couple of seconds while someone else has the spreadsheet open: cells, formulas (worked out on every Mac), formatting, column widths and row heights, merges, rules, filters, charts and pivot tables, and sheets added, renamed, moved or deleted. Rows, columns and cells inserted or deleted on one Mac move what others type at the same time, formulas included, so it lands where they meant it. Two people editing different cells both keep their edits; two editing the same cell at once end with whichever reached iCloud last, the same on every Mac. Undo and Redo take back only your own changes, wherever other people's have moved them to. When the owner renames the spreadsheet, its new name shows for everyone who has it open.
+- **Who's here.** Everyone who has opened it shows as a round badge with their initials in the header, with a green dot while they have it open. Each person's Mac says who they are when they open it, so names show even when iCloud doesn't give them. Click a badge to see their name, their email address or phone number when iCloud says it, whether they own it, edit or comment, and when they were last there.
+- **Edit or comment.** In the Collaborate sheet the owner sets, person by person, whether each can edit or only comment, and can take anyone out. People who can only comment see every change as it's made, and add comments and replies, but can't change the cells: iCloud itself turns their changes down. Everyone can print a shared spreadsheet and save a copy of it on their Mac (File ▸ Save, Make a copy, or Download), whatever they can do.
+- **Comments.** Comments, replies and resolving go to everyone, on their cells however rows and columns have moved since. People edit and delete their own comments; people who can edit can delete anyone's.
+- **Notifications.** When someone changes a shared spreadsheet and then does nothing more to it for two minutes, everyone else gets one notification summing it up ("Ana Lopez edited “Budget”: edited 14 cells on Sheet1, inserted a row and added a comment"), not one for every change, even when PuggleSheets isn't open. Clicking it opens the spreadsheet.
+- **Offline.** When iCloud can't be reached (the Mac is offline, say), a shared spreadsheet turns read-only and the window says why: you can still read it, comments and notes included, print it and save a copy, but not change it or comment on it. Nothing is kept to send later. As soon as iCloud can be reached again it catches up with what everyone else did meanwhile and can be changed again.
+- **Stopping.** Stop Sharing… in the Collaborate sheet takes the spreadsheet out of your iCloud and from everyone it was shared with, and keeps it on your Mac, saved as it was. Anyone who has it open sees it go at once, with a note saying you stopped sharing it. People can also leave a spreadsheet shared with them, with File ▸ Leave shared spreadsheet…. File ▸ Shared spreadsheets lists the spreadsheets shared with you and those you share.
+
 ### Files and output
 
 - **Files.** Open and save **Microsoft Excel (.xlsx)** and **OpenDocument spreadsheets (.ods)**, as used by LibreOffice, with our own readers and writers, and **CSV** and **TSV** (with spilled values). Excel and OpenDocument files keep values, formulas, number formats, fonts, colors, borders, alignment, merged cells, column widths, row heights, frozen panes, hidden rows and columns and tab colors; named ranges, data validation (checkboxes travel as TRUE/FALSE lists and come back as checkboxes), conditional formatting (conditions and color scales), filters and the rows they hide, and arrays that spill (saved as array formulas with their values); charts, images (over and in cells), links, pivot tables and filter views; comments, notes, protected ranges, text rotation and groups; and tables, slicers and table references. Alternating colors are saved as cell fills. Files with features PuggleSheets can't keep yet open as an untitled copy with a notice, so the original is never overwritten with a lossy version.
@@ -73,7 +85,10 @@ Help ▸ Keyboard shortcuts (⌘/) lists every keyboard shortcut.
 ## Known limits
 
 - Filter views hide rows but don't keep their own sort order; sorting from a filter view sorts the data.
-- PuggleSheets is a single-person app: comments are signed with your Mac's user name, and protections guard against accidental edits rather than other people.
+- Protections guard against accidental edits rather than other people: in a shared spreadsheet, anyone who can edit it can change or remove them.
+- Collaborating goes through iCloud, so it needs an iCloud account, for you and for everyone you share with, and a copy of PuggleSheets signed to use it (see Sharing through iCloud); when it can't, the Collaborate sheet says why. Edits are merged cell by cell and, for the rest of a sheet, part by part (each column width and row height, the merges, the rules, the filter, the charts…): two people changing the same cell, or the same part, at the same moment end with one of their changes. A comment that two people start on the same empty cell at the same moment shows only one of the two threads.
+- A shared spreadsheet opens from iCloud, so it needs the connection to open, and it's read-only while iCloud can't be reached. A change made just before the connection dropped goes once it's back; closing the spreadsheet before then asks first. While a spreadsheet is shared, its copy in iCloud is the one that counts: the file on the owner's Mac follows it, and changes made to that file in other apps are replaced.
+- Notifications reach people once they've opened the shared spreadsheet in PuggleSheets, and macOS asks once whether PuggleSheets may show them. Sharing a spreadsheet clears its undo history up to then. Filter views and the open filter view stay each person's own.
 - Formulas in Excel tables' calculated columns that use `[#This Row]` or `@` keep their text but don't calculate, and tables have no totals row. `QUERY` has no `count(*)` and ignores `options`.
 - The `IMAGE()` function isn't supported, because PuggleSheets doesn't fetch anything from the internet.
 - Pivot tables don't have calculated fields or date grouping. Charts don't have trendlines, error bars or the less common types (histogram, candlestick, map, gauge and so on), and can't move to their own sheet.
@@ -95,7 +110,7 @@ xcodebuild -project PuggleSheets.xcodeproj -scheme PuggleSheets -configuration D
 open build/DerivedData/Build/Products/Debug/PuggleSheets.app
 ```
 
-The app is sandboxed and signs locally ("Sign to Run Locally"). To distribute it, set your team under *Signing & Capabilities*.
+The app is sandboxed. Debug builds are signed to run on the Mac that built them, unless `Config/Signing.xcconfig` names a team (see Sharing from Xcode below); releases are signed by `Tools/make-installer.sh`.
 
 ### Installer
 
@@ -128,10 +143,46 @@ To sign and notarize releases, add these secrets under the repository's Settings
 | `NOTARY_API_KEY` | The text of an App Store Connect API key file (`AuthKey_….p8`), used to notarize |
 | `NOTARY_KEY_ID` | That key's ID |
 | `NOTARY_ISSUER_ID` | The issuer ID shown above the keys in App Store Connect |
+| `DEVELOPER_ID_PROFILE_BASE64` | The Developer ID provisioning profile for iCloud, base64-encoded (see below), which released copies need to collaborate. A signed release stops without it |
+
+### Sharing through iCloud
+
+Shared spreadsheets are kept in iCloud, in the container `iCloud.com.pugglesoft.PuggleSheets`, so only a copy of PuggleSheets signed for that container can share them. Any other copy, like one built from a fresh clone, says so in the Collaborate sheet; debug runs can collaborate through a stand-in for iCloud on the Mac instead (see Tests). To set it up, once:
+
+1. In the Apple Developer account, under Certificates, Identifiers & Profiles ▸ Identifiers, register the iCloud container `iCloud.com.pugglesoft.PuggleSheets`. Then edit the App ID `com.pugglesoft.PuggleSheets`: turn on iCloud, with CloudKit and that container, and Push Notifications.
+2. Under Profiles, make a Developer ID provisioning profile for that App ID and the Developer ID Application certificate, and download it.
+3. Make the container's schema. iCloud's development environment adds record types as they're first saved, but production only takes what's deployed to it. Either collaborate once from Xcode in the development environment with two iCloud accounts (see Sharing from Xcode below), or add the types by hand in CloudKit Console's development environment, then deploy the schema to production. They're the same as PuggleDocs', so a schema exported from its container (`xcrun cktool export-schema`) can be imported into this one (`xcrun cktool import-schema`):
+
+   | Record type | Fields |
+   | --- | --- |
+   | `Document` | `info` (Bytes), `revision` (Int64), `snapshot` (Asset) |
+   | `Change` | `revision` (Int64), `changeID` (String), `author` (String), `authorName` (String), `change` (Bytes), `changeFile` (Asset, for very large changes like a pasted image or an imported sheet) |
+   | `Comment` | `info` (Bytes) |
+   | `Presence` | `info` (Bytes) |
+   | `Notice` | `title`, `body`, `document`, `owner`, `author` (all String); give `recordName` a Queryable index |
+
+   iCloud's own record of a share, `cloudkit.share`, only appears in the development schema once a share has been saved there, so share one spreadsheet in the development environment before deploying.
+4. Add the profile to the repository as the secret `DEVELOPER_ID_PROFILE_BASE64` (`base64 -i PuggleSheets.provisionprofile | pbcopy`). To build a signed installer on your Mac instead, set `DEVELOPER_ID_PROFILE` to the profile's path along with the Developer ID variables before running `Tools/make-installer.sh`.
+
+`Tools/make-installer.sh` then puts the profile inside the app and signs it for the container, the production environment and pushes. To try collaborating, install it on two Macs signed in to different iCloud accounts.
+
+#### Sharing from Xcode
+
+A debug build can collaborate too, once it's signed with the team. Make `Config/Signing.xcconfig` (Git ignores it) with your team's ID:
+
+```
+DEVELOPMENT_TEAM = ABCDE12345
+CODE_SIGN_IDENTITY = Apple Development
+CODE_SIGN_ENTITLEMENTS = Config/iCloud.entitlements
+```
+
+Add an Apple ID in that team under Xcode ▸ Settings ▸ Accounts, then build: Xcode makes the development certificate and provisioning profile itself (the App ID needs iCloud and Push Notifications turned on first, as in step 1). If Xcode can't sign in to that Apple ID, make a macOS App Development provisioning profile for the App ID on the developer website, install it, and add `CODE_SIGN_STYLE = Manual` and `PROVISIONING_PROFILE_SPECIFIER = PuggleSheets Development` (the profile's name). Set the team in that file rather than under *Signing & Capabilities*, which would write it into the project for everyone. Debug builds use iCloud's production environment, as installed copies do, so a spreadsheet shared from Xcode reaches someone who installed PuggleSheets. Production only takes the kinds of records already deployed to it: when PuggleSheets starts saving a new kind, and once at the start, add `ICLOUD_ENVIRONMENT = Development` to `Config/Signing.xcconfig`, collaborate on a spreadsheet, deploy the schema to production in CloudKit Console, and take the line out again. `Config/iCloud.entitlements` is `PuggleSheets/PuggleSheets.entitlements` with iCloud's added, so keep the two alike.
+
+While debug builds use the development environment, everyone collaborating has to run a debug build too, since installed copies use production: another Mac building from Xcode with the same `Config/Signing.xcconfig`, or a second account on the same Mac, signed in to another iCloud account, running a copy of the debug build. In a fresh development environment the first summary notification someone is sent adds the kind of record notifications need, so it isn't shown; the ones after it are. Anything iCloud turns down is written to the Mac's log under the Collaboration category, which Xcode's console shows.
 
 ## Tests
 
-The spreadsheet model, formula engine, rules, number formats and file formats live in a Swift package with 634 unit tests, including randomized checks that incremental recalculation (spilled arrays included) always matches a full one and that damaged files never crash the readers:
+The spreadsheet model, formula engine, rules, number formats, file formats and the engine that keeps shared spreadsheets the same on every Mac live in a Swift package with 648 unit tests, including randomized checks that incremental recalculation (spilled arrays included) always matches a full one, that damaged files never crash the readers, and that three simulated Macs editing one workbook at random through its log (cells, formulas, layout, rows and columns inserted and deleted, sheets added, renamed and removed, with changes answered at once or late) always end with the same workbook, and a change that didn't come being asked for until it does:
 
 ```sh
 cd Packages/PuggleSheetsKit && swift test
@@ -143,13 +194,21 @@ Debug builds also include an end-to-end check that drives a real window and prin
 build/DerivedData/Build/Products/Debug/PuggleSheets.app/Contents/MacOS/PuggleSheets -PSSelfTest YES
 ```
 
-Other debug launch arguments: `-PSSampleDocument YES` fills new spreadsheets with a sample budget, a Tracker sheet with rules, a chart, an image and a filter view, links and an image in a cell on the Notes sheet, a pivot table, and an Orders sheet with a table, a slicer, sparklines and QUERY and MAP formulas. `-PSSnapshot name.png` saves a screenshot of the first window (or its open sheet) to the app's temporary folder and quits. Combine it with `-PSWindowWidth`, `-PSZoom`, `-PSSheet name`, `-PSSelect A1:C5`, `-PSType text` (starts typing into the active cell), `-PSFormulaBarEdit YES`, `-PSFind text`, `-PSOpenSheet shortcuts`, `-PSShowAbout YES`, `-PSSidebar conditionalFormatting` (or `dataValidation`, `alternatingColors`, `namedRanges`), `-PSFilterColumn 2` (opens a filter popover), `-PSFindReplace text` (with `-PSReplaceWith`, `-PSReplaceAll YES` and `-PSSnapshotPanel YES`), `-PSPrintSettings YES`, `-PSSelectObject YES`, `-PSChartEditor YES`, `-PSPivotEditor YES`, `-PSFilterView YES`, `-PSLinkEditor YES`, `-PSShowNote YES`, `-PSCommentCard YES`, `-PSShowProtected YES`, `-PSShowFormulas YES`, `-PSSidebar comments` (or `protections`, `columnStats`), `-PSTableSettings YES`, `-PSSlicerEditor YES`, `-PSWritePDF name.pdf` or `-PSWriteFile name.xlsx` (saves the workbook to the temporary folder) to check layouts. `-PSBenchmark YES` fills a sheet with 100,000 cells and prints how long recalculating, drawing and editing take.
+A second suite checks collaboration end to end on a stand-in for iCloud, with simulated people on other "Macs": sharing a spreadsheet (saved first), inviting one person to edit and one to comment, their Mac opening it with the same cells, typing and formulas both ways, a big picture put in a cell arriving whole, rows inserted on one Mac moving what the other types at the same moment, the same cell typed into at once and random edits at once ending the same, undo and redo taking back only this Mac's edits (undoing an inserted row keeping what someone typed below it), the badges and who's viewing, comments, replies and resolving both ways and comments moving with rows, taking someone down to commenting (their changes turned down, their comments still arriving), summary notifications after a quiet spell, going offline (read-only with a note saying so, typing, commenting, inserting rows and undo changing nothing, catching up once iCloud's back, and a change made as the connection dropped going once it's back), renaming, stopping sharing (the spreadsheet kept here, gone for the others), and a spreadsheet someone else shares opening read-only (comments allowed, typing and inserting rows changing nothing, their edits, comments and pictures arriving live, a change iCloud passes over while reading still arriving with the ones after it, printing, downloading and copying allowed, and the window saying so and closing when they stop sharing), and invitation links pasted in:
+
+```sh
+build/DerivedData/Build/Products/Debug/PuggleSheets.app/Contents/MacOS/PuggleSheets -PSSelfTest YES -PSSelfTestSuite collaboration
+```
+
+Other debug launch arguments: `-PSSampleDocument YES` fills new spreadsheets with a sample budget, a Tracker sheet with rules, a chart, an image and a filter view, links and an image in a cell on the Notes sheet, a pivot table, and an Orders sheet with a table, a slicer, sparklines and QUERY and MAP formulas. `-PSSnapshot name.png` saves a screenshot of the first window (or its open sheet) to the app's temporary folder and quits. Combine it with `-PSWindowWidth`, `-PSZoom`, `-PSSheet name`, `-PSSelect A1:C5`, `-PSType text` (starts typing into the active cell), `-PSFormulaBarEdit YES`, `-PSFind text`, `-PSOpenSheet shortcuts`, `-PSShowAbout YES`, `-PSSidebar conditionalFormatting` (or `dataValidation`, `alternatingColors`, `namedRanges`), `-PSFilterColumn 2` (opens a filter popover), `-PSFindReplace text` (with `-PSReplaceWith`, `-PSReplaceAll YES` and `-PSSnapshotPanel YES`), `-PSPrintSettings YES`, `-PSSelectObject YES`, `-PSChartEditor YES`, `-PSPivotEditor YES`, `-PSFilterView YES`, `-PSLinkEditor YES`, `-PSShowNote YES`, `-PSCommentCard YES`, `-PSShowProtected YES`, `-PSShowFormulas YES`, `-PSSidebar comments` (or `protections`, `columnStats`), `-PSTableSettings YES`, `-PSSlicerEditor YES`, `-PSWritePDF name.pdf` or `-PSWriteFile name.xlsx` (saves the workbook to the temporary folder) to check layouts. `-PSBenchmark YES` fills a sheet with 100,000 cells and prints how long recalculating, drawing and editing take. `-PSStandInCloud YES` collaborates through the stand-in for iCloud, and with `-PSCollaborationDemo YES` too the window's spreadsheet is shared with two simulated people who open it, type and comment (add `-PSOpenSheet collaborate` for the Collaborate sheet, or `-PSDemoOffline YES` to show it while iCloud can't be reached).
 
 ## Project layout
 
 ```
 PuggleSheets/               macOS app target (files are picked up automatically by Xcode)
-  App/                      Entry point, app delegate, debug-only sample and self-test
+  App/                      Entry point, app delegate, debug-only sample and self-tests
+  Collaboration/            Sharing through iCloud: each shared spreadsheet's session, iCloud, the Collaborate sheet,
+                            the badges, and a stand-in for iCloud for debug runs
   Document/                 SpreadsheetDocument (NSDocument)
   Editor/                   SpreadsheetController: edits, undo, clipboard, fill, sort, structure, rules,
                             cleanup, find and replace, print layout
@@ -166,6 +225,9 @@ Packages/PuggleSheetsKit/   Spreadsheet model, formula engine, number formats an
   Formats/                  Number format patterns, cell display, typed-input recognition
   IO/                       ZIP, XLSX, ODS and CSV/TSV readers and writers
   Editing/                  Workbook-wide edits (rows, columns, sheets) that rewrite formulas
+  Collaboration/            Shared workbooks' ops, rewriting them to follow each other, the log client, snapshots,
+                            iCloud records and summaries
+Config/                     Signing for debug builds (see Sharing from Xcode)
 Tools/make-icons.swift      Regenerates the app icon PNGs
 Tools/make-installer.sh     Builds the PuggleSheets.pkg installer
 Tools/release.sh            Releases the next version (see Releasing a new version)
@@ -187,6 +249,7 @@ Tools/release.sh            Releases the next version (see Releasing a new versi
 - **Printing** draws pages with the same code that draws the grid, so what you print matches the screen; PDFs are written page by page with Core Graphics.
 - **Charts and images** float over the grid, anchored to a cell with an offset and a size in pixels, so they move with inserted and deleted rows and columns. Charts are drawn with Core Graphics from their data on every redraw, so they always match the cells.
 - **Pivot tables** are computed by the formula engine and placed like an array formula's spilled values, so they update incrementally and show `#REF!` if data is in the way.
+- **Collaboration.** A shared spreadsheet is two zones in its owner's iCloud. The document zone holds a snapshot of the whole workbook now and then, and its log: one record per revision, each one change, named for its revision so that only one change can ever take it. A change is a list of ops: cells set to values (comments aside), parts of a sheet's layout set to values (each column width and row height on its own), rows, columns or cells inserted or deleted, and sheets added, removed, renamed or moved. Every Mac applies the same ops in the log's order the same way, with the workbook's own editing code, so every Mac ends with the same workbook. Each Mac keeps the log's workbook and its own changes not yet in; when another Mac's change gets in first, the waiting changes are rewritten to follow it (cells typed below inserted rows move down, formulas and ranges follow, deletions skip what's gone) and the workbook is made afresh from the log's, or, when both only set values, the incoming change is applied minus what the waiting changes set. That zone is shared with each person as edit or read-only, so iCloud itself refuses changes from people who may only comment. The talk zone, which everyone in the spreadsheet can write to through a link kept in the document zone, holds the comments (each placed on a cell at a revision of the log, followed through the rows and columns inserted and deleted since) and who has it open. While a spreadsheet is shared, undo steps are the ops that take an edit back, rewritten as other people's changes arrive. Each person's Mac also keeps an inbox zone shared by link with the people they work with, who leave a short summary there after a quiet spell; a subscription on it makes iCloud show the notification.
 
 ## Contributing
 

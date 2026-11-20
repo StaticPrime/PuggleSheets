@@ -70,7 +70,7 @@ extension GridView {
 
     /// The pivot table the active cell is in, if any.
     var selectedPivotTable: PivotTable? {
-        guard printSettings == nil, controller.selectedObjectID == nil else { return nil }
+        guard canChange, printSettings == nil, controller.selectedObjectID == nil else { return nil }
         return sheet.pivotTable(covering: controller.selection.active)
     }
 

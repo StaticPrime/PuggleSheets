@@ -30,7 +30,7 @@ extension DocumentWindowController {
     /// A table's filter button (sort and filter that column) or its name chip (the table menu).
     func handleTableControl(_ tableID: UUID, column: Int?, rect: CGRect) {
         finishEditing()
-        guard let table = controller.sheet.tables.first(where: { $0.id == tableID }) else { return }
+        guard let table = controller.sheet.tables.first(where: { $0.id == tableID }), allowsChanges() else { return }
         guard let column else { return showTableMenu(table, at: rect) }
         let popover = NSPopover()
         popover.behavior = .transient
@@ -84,7 +84,7 @@ extension DocumentWindowController {
     /// A slicer's status line: its values and conditions.
     func showSlicerFilter(_ id: UUID, at rect: CGRect) {
         finishEditing()
-        guard let spec = controller.object(id: id)?.slicer else { return }
+        guard let spec = controller.object(id: id)?.slicer, allowsChanges() else { return }
         let popover = NSPopover()
         popover.behavior = .transient
         popover.appearance = NSAppearance(named: .aqua)

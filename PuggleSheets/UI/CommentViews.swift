@@ -81,6 +81,11 @@ struct CommentCardView: View {
     let delete: (UUID) -> Void
     let resolve: () -> Void
     let close: () -> Void
+    /// In a shared spreadsheet, which comments this person may change or delete.
+    var canEdit: (Comment) -> Bool = { _ in true }
+    var canDelete: (Comment) -> Bool = { _ in true }
+    /// While a shared spreadsheet can't save to iCloud: the thread shows, with nothing to answer, resolve or change it.
+    var isReadOnly = false
     @State private var reply = ""
     @State private var editing: UUID?
     @State private var editText = ""
@@ -98,6 +103,7 @@ struct CommentCardView: View {
                     Text(author).font(.system(size: 13, weight: .medium))
                 }
             }
+            if !isReadOnly {
             VStack(alignment: .trailing, spacing: 8) {
                 TextField(thread == nil ? "Comment" : "Reply", text: $reply, axis: .vertical)
                     .textFieldStyle(.plain)
@@ -116,6 +122,7 @@ struct CommentCardView: View {
                         PanelButton(title: thread == nil ? "Comment" : "Reply", isEnabled: !reply.trimmingCharacters(in: .whitespaces).isEmpty) { send() }
                     }
                 }
+            }
             }
         }
         .padding(14)
@@ -143,21 +150,27 @@ struct CommentCardView: View {
                         .font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
                 }
                 Spacer(minLength: 4)
-                if isFirst {
+                if isFirst, !isReadOnly {
                     ToolbarIconButton(symbol: "checkmark", help: "Mark as resolved and hide discussion") { resolve() }
                 }
-                Menu {
-                    Button("Edit") {
-                        editing = comment.id
-                        editText = comment.text
+                if canEdit(comment) || canDelete(comment) {
+                    Menu {
+                        if canEdit(comment) {
+                            Button("Edit") {
+                                editing = comment.id
+                                editText = comment.text
+                            }
+                        }
+                        if canDelete(comment) {
+                            Button(isFirst ? "Delete thread" : "Delete") { delete(comment.id) }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis").rotationEffect(.degrees(90)).foregroundStyle(Theme.secondaryText)
                     }
-                    Button(isFirst ? "Delete thread" : "Delete") { delete(comment.id) }
-                } label: {
-                    Image(systemName: "ellipsis").rotationEffect(.degrees(90)).foregroundStyle(Theme.secondaryText)
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
-                .fixedSize()
             }
             if editing == comment.id {
                 TextField("", text: $editText, axis: .vertical)
@@ -227,7 +240,7 @@ struct CommentsPanel: View {
                         Text(item.thread.comments.count == 2 ? "1 reply" : "\(item.thread.comments.count - 1) replies")
                             .font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
                     }
-                    if item.thread.isResolved {
+                    if item.thread.isResolved, state.canComment {
                         Button("Reopen") {
                             open(item.sheetIndex, item.address)
                             controller.setCommentResolved(false, at: item.address)

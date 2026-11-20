@@ -93,6 +93,10 @@ enum WorkbookChange {
     case layout(sheet: UUID, SheetLayout)
     /// Replaces everything: used for edits that move cells or sheets around.
     case workbook(Workbook)
+    /// Inserts or deletes rows, columns or cells, or adds, removes, renames or moves sheets, as a shared workbook's
+    /// ops (see `WorkbookOp`): made here exactly as every other Mac makes them, so a shared spreadsheet stays the same
+    /// everywhere, and things others change at the same time follow.
+    case ops([WorkbookOp])
 }
 
 /// What changed, so views know what to refresh.
@@ -147,6 +151,8 @@ final class SpreadsheetController {
     private(set) var editGeneration = 0
     /// The rows the open filter view hides, kept until the next edit.
     var filterViewRowCache: (view: FilterView, generation: Int, sheet: UUID, rows: Set<Int>)?
+    /// While the spreadsheet is shared: its part in that, which sends edits to the others and keeps undo.
+    weak var collaboration: SpreadsheetCollaboration?
 
     init(document: SpreadsheetDocument, state: EditorState) {
         self.document = document
@@ -211,18 +217,80 @@ final class SpreadsheetController {
     /// Applies `changes` as one undoable step. `selection` is what to select afterwards (the current
     /// selection by default); undo brings back the selection from before.
     func perform(_ changes: [WorkbookChange], actionName: String, selection after: GridSelection? = nil, showing sheetID: UUID? = nil) {
+        guard changesAllowed(changes) else { return refuseChange() }
         guard protectionAllows(changes) else { return }
         var changes = changes
         if let rowHeights = automaticRowHeights(for: changes) { changes.append(rowHeights) }
         let before = (activeSheetID, selection)
+        // A shared spreadsheet notes what the edit touches as it was (only that, so the cells aren't copied).
+        let capture = collaboration?.isLive == true ? EditCapture(changes, from: workbook) : nil
         let inverse = apply(changes)
         if let sheetID { showSheet(id: sheetID) }
         if let after { selection = after }
         let afterState = (activeSheetID, selection)
+        if let collaboration, let capture {
+            // A shared spreadsheet's edits go to the others, and its undo takes back only this person's edits.
+            collaboration.recorded(changes, capture: capture, after: workbook, actionName: actionName,
+                                   selections: (before, afterState))
+            return
+        }
         undoManager?.registerUndo(withTarget: self) { controller in
             controller.applyRecorded(inverse, actionName: actionName, show: before, then: afterState)
         }
         undoManager?.setActionName(actionName)
+    }
+
+    /// Applies ops (rows inserted, sheets renamed…) as one undoable step.
+    /// Says, with a beep, that this can't be changed here.
+    func refuseChange() {
+        NSSound.beep()
+        // A shared spreadsheet that can't save to iCloud says so, again, when someone tries.
+        if state.access == .offline { collaboration?.explainOffline() }
+    }
+
+    func performOps(_ ops: [WorkbookOp], actionName: String, selection: GridSelection? = nil, showing sheetID: UUID? = nil) {
+        guard !ops.isEmpty else { return }
+        perform([.ops(ops)], actionName: actionName, selection: selection, showing: sheetID)
+    }
+
+    /// Whether sharing lets these changes be made here: everything for people who can edit; only comments for people
+    /// who may only comment; nothing while a shared copy is on its way.
+    private func changesAllowed(_ changes: [WorkbookChange]) -> Bool {
+        switch state.access {
+        case .full:
+            return true
+        case .locked, .offline:
+            return false
+        case .commentOnly:
+            for change in changes {
+                guard case .cells(let id, let cells) = change, let index = workbook.sheetIndex(id: id) else { return false }
+                let sheet = workbook.sheets[index]
+                for (address, cell) in cells where sheet[address].withoutComment != cell.withoutComment { return false }
+            }
+            return true
+        }
+    }
+
+    /// Changes others made to a shared spreadsheet: applied as any edit is, recalculating and refreshing, but never
+    /// undone here.
+    func applyRemote(_ changes: [WorkbookChange]) {
+        guard !changes.isEmpty else { return }
+        _ = apply(changes)
+    }
+
+    /// Moves each sheet's selection through rows, columns or cells others inserted or deleted.
+    func moveSelections(through ops: [WorkbookOp]) {
+        for (id, selection) in selections {
+            var moved = selection
+            for op in ops {
+                guard case .structure(let changed, let change) = op, changed == id else { continue }
+                moved.ranges = moved.ranges.compactMap { change.map($0) }
+                if moved.ranges.isEmpty { moved.ranges = [CellRange(change.map(moved.active) ?? moved.active)] }
+                moved.active = change.map(moved.active) ?? moved.ranges[moved.ranges.count - 1].start
+                moved.anchor = change.map(moved.anchor) ?? moved.active
+            }
+            if moved != selection { setSelection(moved, for: id) }
+        }
     }
 
     private func applyRecorded(_ changes: [WorkbookChange], actionName: String,
@@ -270,6 +338,11 @@ final class SpreadsheetController {
             case .workbook(let replacement):
                 inverse.append(.workbook(document.workbook))
                 document.workbook = replacement
+                recalculateEverything = true
+                update.formUnion([.layout, .cells, .sheets])
+            case .ops(let ops):
+                inverse.append(.workbook(document.workbook))
+                document.workbook.apply(ops)
                 recalculateEverything = true
                 update.formUnion([.layout, .cells, .sheets])
             }
@@ -343,7 +416,7 @@ final class SpreadsheetController {
                 let old = Set(workbook.sheets[index].merges), new = Set(layout.merges)
                 let merges = old.symmetricDifference(new).map(\.start)
                 if !merges.isEmpty { touched.append((id, merges)) }
-            case .workbook:
+            case .workbook, .ops:
                 continue
             }
         }

@@ -22,6 +22,20 @@ enum SaveStatus: Equatable {
     }
 }
 
+/// What can be done to a spreadsheet here.
+enum DocumentAccess: Equatable {
+    /// Everything: the spreadsheet is this person's, or shared with them to edit.
+    case full
+    /// Shared with them to read and comment on: comments, but no changes to the cells.
+    case commentOnly
+    /// Nothing for now: its shared copy is still on its way.
+    case locked
+    /// A shared spreadsheet whose changes can't be saved to iCloud just now (the Mac is offline, say): it can be read,
+    /// printed and copied, comments and notes included, but nothing in it changes until iCloud takes changes again.
+    /// Nothing is kept to send later.
+    case offline
+}
+
 /// The active cell's formatting, as the toolbar shows it.
 struct FormatSummary: Equatable {
     var format = CellFormat()
@@ -120,6 +134,29 @@ final class EditorState {
     var editingPivotID: UUID?
     /// The table the table settings show.
     var editingTableID: UUID?
+
+    /// What sharing allows here.
+    var access: DocumentAccess = .full
+    /// Who the spreadsheet is shared with, and how its shared copy is keeping up.
+    let collaboration = CollaborationState()
+
+    /// Whether the cells, sheets and their formatting can be changed here.
+    var isEditable: Bool { access == .full }
+
+    /// Comments can be added even by people who may only comment (but not while iCloud can't take them).
+    var canComment: Bool { access == .full || access == .commentOnly }
+
+    /// What the toolbar shows when a shared spreadsheet can't be edited here: only commented on, or not changed at all.
+    var accessBadge: (title: String, symbol: String)? {
+        switch access {
+        case .offline: ("Offline", "icloud.slash")
+        case .commentOnly: ("Commenting", "text.bubble")
+        case .full, .locked: nil
+        }
+    }
+
+    /// Only a spreadsheet's owner shares it: people it's shared with don't get the Collaborate button.
+    var showsCollaborateButton: Bool { !collaboration.isShared || collaboration.isOwner }
 
     var zoomLabel: String { "\(Int((zoom * 100).rounded()))%" }
 

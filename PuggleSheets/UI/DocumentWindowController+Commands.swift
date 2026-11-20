@@ -462,6 +462,25 @@ extension DocumentWindowController: SheetCommands, NSMenuItemValidation {
     // MARK: Validation
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        // Sharing decides what can change here.
+        if let action = menuItem.action {
+            switch action {
+            case #selector(SheetCommands.psCollaborate(_:)):
+                // Only a spreadsheet's owner shares it, and changes who it's shared with.
+                menuItem.isHidden = !state.showsCollaborateButton
+                menuItem.title = state.collaboration.isShared ? "Collaborators…" : "Collaborate…"
+                return state.showsCollaborateButton && (state.access != .locked || state.collaboration.isShared)
+            case #selector(SheetCommands.psLeaveShared(_:)):
+                menuItem.isHidden = state.showsCollaborateButton
+                return spreadsheet?.collaboration?.isOwner == false
+            case #selector(SheetCommands.psInsertComment(_:)):
+                if !state.canComment { return false }
+            case #selector(SheetCommands.psRename(_:)):
+                if spreadsheet?.sharedCopy != nil { return false }
+            default:
+                if !state.isEditable, !Self.commandsThatChangeNothing.contains(action) { return false }
+            }
+        }
         let selection = controller.selection
         let sheet = controller.sheet
         let rows = controller.selectedRows, columns = controller.selectedColumns
@@ -622,7 +641,8 @@ extension DocumentWindowController: SheetCommands, NSMenuItemValidation {
                 add(MenuBuilder.item("Clear notes", #selector(SheetCommands.psClearNotes(_:))))
             }
             if let pivot = controller.sheet.pivotTable(covering: controller.selection.active) {
-                let edit = NSMenuItem(title: "Edit pivot table", action: #selector(MenuAction.perform(_:)), keyEquivalent: "")
+                // Without an action it shows disabled while the spreadsheet can't be changed.
+                let edit = NSMenuItem(title: "Edit pivot table", action: state.isEditable ? #selector(MenuAction.perform(_:)) : nil, keyEquivalent: "")
                 let handler = MenuAction { [weak self] in self?.showPivotEditor(pivot.id) }
                 edit.target = handler
                 edit.representedObject = handler

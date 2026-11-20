@@ -182,7 +182,7 @@ extension GridView {
                 onObjectMenu?(id, objectMenuButtonRect(in: objectRect(object.anchor)))
             }
         case .handle(let id, let handle):
-            guard let object = controller.object(id: id) else { return true }
+            guard let object = controller.object(id: id), canChange else { return true }
             drag = .resizingObject(id, handle, start: point, origin: sheetFrame(of: object.anchor))
         case .body(let id):
             controller.selectedObjectID = id
@@ -197,7 +197,8 @@ extension GridView {
                 onObjectDoubleClick?(id)
                 return true
             }
-            drag = .movingObject(id, start: point, origin: sheetFrame(of: object.anchor))
+            // While the spreadsheet can't be changed, clicking only selects it, to copy.
+            if canChange { drag = .movingObject(id, start: point, origin: sheetFrame(of: object.anchor)) }
         }
         needsDisplay = true
         return true
@@ -297,6 +298,8 @@ extension GridView {
         guard let hit = objectHit(at: point) else { return nil }
         switch hit {
         case .menu: return .pointingHand
+        case .handle where !canChange, .body where !canChange:
+            return nil
         case .handle(_, let handle):
             switch handle {
             case .left, .right: return .resizeLeftRight

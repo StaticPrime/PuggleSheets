@@ -1,7 +1,7 @@
 import Foundation
 
 /// A cell position, zero-based: row 0, column 0 is A1.
-public struct CellAddress: Hashable, Comparable, Sendable, CustomStringConvertible {
+public struct CellAddress: Hashable, Comparable, Sendable, CustomStringConvertible, Codable {
     public var row: Int
     public var column: Int
 
@@ -68,7 +68,7 @@ public struct CellAddress: Hashable, Comparable, Sendable, CustomStringConvertib
 }
 
 /// A rectangular block of cells. `start` is the top-left cell and `end` the bottom-right one, inclusive.
-public struct CellRange: Hashable, Sendable, CustomStringConvertible {
+public struct CellRange: Hashable, Sendable, CustomStringConvertible, Codable {
     public private(set) var start: CellAddress
     public private(set) var end: CellAddress
 

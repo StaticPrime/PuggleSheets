@@ -1,8 +1,8 @@
 import Foundation
 
 /// Insert ▸ Chart: what a chart shows and how, as the chart editor sets it up.
-public struct ChartSpec: Hashable, Sendable {
-    public enum Kind: String, CaseIterable, Sendable {
+public struct ChartSpec: Hashable, Sendable, Codable {
+    public enum Kind: String, CaseIterable, Sendable, Codable {
         case column, stackedColumn, percentColumn
         case bar, stackedBar, percentBar
         case line, smoothLine
@@ -14,18 +14,18 @@ public struct ChartSpec: Hashable, Sendable {
         case combo
     }
 
-    public enum LegendPosition: String, CaseIterable, Sendable {
+    public enum LegendPosition: String, CaseIterable, Sendable, Codable {
         /// `auto` puts the legend on the right for most charts.
         case auto, top, bottom, left, right, inside, none
     }
 
     /// "Aggregate": how repeated labels are combined.
-    public enum Aggregation: String, CaseIterable, Sendable {
+    public enum Aggregation: String, CaseIterable, Sendable, Codable {
         case sum, average, count, max, min, median
     }
 
     /// What pie slices are labeled with.
-    public enum PieLabel: String, CaseIterable, Sendable {
+    public enum PieLabel: String, CaseIterable, Sendable, Codable {
         case none, percentage, value, label
     }
 
@@ -101,8 +101,8 @@ public struct ChartSpec: Hashable, Sendable {
 }
 
 /// How one series is drawn.
-public struct ChartSeriesStyle: Hashable, Sendable {
-    public enum SeriesType: String, CaseIterable, Sendable {
+public struct ChartSeriesStyle: Hashable, Sendable, Codable {
+    public enum SeriesType: String, CaseIterable, Sendable, Codable {
         case column, line, area
     }
 

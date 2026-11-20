@@ -3,7 +3,7 @@ import Foundation
 /// Data ▸ Add a slicer: a control over the grid that filters a range by one of its columns. Rows its
 /// criterion hides are hidden like a filter's, so charts that use the range follow, and pivot tables
 /// whose source is the same range apply it too when `appliesToPivotTables` is on.
-public struct SlicerSpec: Hashable, Sendable {
+public struct SlicerSpec: Hashable, Sendable, Codable {
     /// The data, header row first: a reference like a chart's ("A1:D20", "Sheet2!A1:D20", "Table1").
     public var range: String
     /// The filtered column, as an index into the range's columns (0 is its first column).

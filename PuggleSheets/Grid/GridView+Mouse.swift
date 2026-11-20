@@ -2,6 +2,11 @@ import AppKit
 import PuggleSheetsKit
 
 extension GridView {
+    /// Whether the grid's own controls that change the spreadsheet work: resizing columns and rows, the freeze bars,
+    /// the fill handle, moving and resizing objects. They don't while it can't be changed, such as a shared spreadsheet
+    /// while iCloud can't be reached.
+    var canChange: Bool { controller.state.isEditable }
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
@@ -45,14 +50,14 @@ extension GridView {
     private func updateCursor(at point: CGPoint) {
         if let cursor = objectCursor(at: point) { cursor.set(); return }
         if case .freezing = drag { NSCursor.closedHand.set(); return }
-        if freezeBar(at: point) != nil { NSCursor.openHand.set(); return }
+        if canChange, freezeBar(at: point) != nil { NSCursor.openHand.set(); return }
         if case .resizingColumn = drag { NSCursor.resizeLeftRight.set(); return }
         if case .resizingRow = drag { NSCursor.resizeUpDown.set(); return }
-        if columnBoundary(at: point) != nil {
+        if canChange, columnBoundary(at: point) != nil {
             NSCursor.resizeLeftRight.set()
-        } else if rowBoundary(at: point) != nil {
+        } else if canChange, rowBoundary(at: point) != nil {
             NSCursor.resizeUpDown.set()
-        } else if editor == nil, fillHandleRect.contains(point) {
+        } else if canChange, editor == nil, fillHandleRect.contains(point) {
             NSCursor.crosshair.set()
         } else {
             NSCursor.arrow.set()
@@ -162,7 +167,7 @@ extension GridView {
             }
             return
         }
-        if let rowsBar = freezeBar(at: point) {
+        if canChange, let rowsBar = freezeBar(at: point) {
             drag = .freezing(rows: rowsBar)
             freezeDragPosition = rowsBar ? point.y : point.x
             NSCursor.closedHand.set()
@@ -171,7 +176,7 @@ extension GridView {
         }
         let wholeColumns = controller.selection.selectsWholeColumns(rowCount: sheet.rowCount)
         let wholeRows = controller.selection.selectsWholeRows(columnCount: sheet.columnCount)
-        if let column = columnBoundary(at: point) {
+        if canChange, let column = columnBoundary(at: point) {
             let affected = wholeColumns && controller.selectedColumns.contains(column) ? controller.selectedColumns : [column]
             if event.clickCount == 2 {
                 autoFitColumns(affected)
@@ -180,7 +185,7 @@ extension GridView {
             }
             return
         }
-        if let row = rowBoundary(at: point) {
+        if canChange, let row = rowBoundary(at: point) {
             let affected = wholeRows && controller.selectedRows.contains(row) ? controller.selectedRows : [row]
             if event.clickCount == 2 {
                 autoFitRows(affected)
@@ -189,7 +194,7 @@ extension GridView {
             }
             return
         }
-        if fillHandleRect.contains(point) {
+        if canChange, fillHandleRect.contains(point) {
             drag = .filling(source: controller.selection.current, target: controller.selection.current)
             return
         }
@@ -398,6 +403,11 @@ extension GridView {
         let arrowArea = CGRect(x: rect.maxX - 22 * zoom, y: rect.minY, width: 22 * zoom, height: rect.height)
         guard hasValue || arrowArea.contains(point) else { return false }
         controller.selection = GridSelection(address)
+        // Its list only enters a value, so it doesn't open while the spreadsheet can't be changed.
+        guard controller.state.isEditable else {
+            controller.refuseChange()
+            return true
+        }
         showDropdown(items: items, at: address)
         return true
     }

@@ -2,8 +2,8 @@ import Foundation
 
 /// A test on a cell's value, shared by conditional formatting, data validation and filters
 /// (all three offer the same list).
-public struct CellCondition: Hashable, Sendable {
-    public enum Kind: String, CaseIterable, Sendable {
+public struct CellCondition: Hashable, Sendable, Codable {
+    public enum Kind: String, CaseIterable, Sendable, Codable {
         case isEmpty, isNotEmpty
         case textContains, textDoesNotContain, textStartsWith, textEndsWith, textIsExactly
         case textIsValidEmail, textIsValidURL
@@ -35,7 +35,7 @@ public struct CellCondition: Hashable, Sendable {
 }
 
 /// Formatting a conditional rule lays over a cell's own format; nil leaves that part alone.
-public struct ConditionalFormat: Hashable, Sendable {
+public struct ConditionalFormat: Hashable, Sendable, Codable {
     public var bold: Bool?
     public var italic: Bool?
     public var underline: Bool?
@@ -76,8 +76,8 @@ public struct ConditionalFormat: Hashable, Sendable {
 }
 
 /// A gradient fill from the lowest to the highest value of a range.
-public struct ColorScale: Hashable, Sendable {
-    public enum PointKind: String, CaseIterable, Sendable {
+public struct ColorScale: Hashable, Sendable, Codable {
+    public enum PointKind: String, CaseIterable, Sendable, Codable {
         /// The range's lowest or highest value (`value` unused).
         case minimum, maximum
         /// A fixed number (`value` holds it).
@@ -88,7 +88,7 @@ public struct ColorScale: Hashable, Sendable {
         case percentile
     }
 
-    public struct Point: Hashable, Sendable {
+    public struct Point: Hashable, Sendable, Codable {
         public var kind: PointKind
         public var value: String?
         public var color: RGBColor
@@ -113,8 +113,8 @@ public struct ColorScale: Hashable, Sendable {
 
 /// Format ▸ Conditional formatting. Rules apply in order; for each part of the format, the first
 /// rule that sets it wins.
-public struct ConditionalFormatRule: Hashable, Sendable, Identifiable {
-    public enum Style: Hashable, Sendable {
+public struct ConditionalFormatRule: Hashable, Sendable, Identifiable, Codable {
+    public enum Style: Hashable, Sendable, Codable {
         case condition(CellCondition, ConditionalFormat)
         case colorScale(ColorScale)
     }
@@ -131,8 +131,8 @@ public struct ConditionalFormatRule: Hashable, Sendable, Identifiable {
 }
 
 /// Data ▸ Data validation.
-public struct DataValidationRule: Hashable, Sendable, Identifiable {
-    public enum Criterion: Hashable, Sendable {
+public struct DataValidationRule: Hashable, Sendable, Identifiable, Codable {
+    public enum Criterion: Hashable, Sendable, Codable {
         /// A dropdown of these items.
         case list([String])
         /// A dropdown of the values in a range, written as a reference without "=" ("Sheet1!$A$1:$A$10").
@@ -163,7 +163,7 @@ public struct DataValidationRule: Hashable, Sendable, Identifiable {
 }
 
 /// What a filter hides in one column.
-public struct FilterCriterion: Hashable, Sendable {
+public struct FilterCriterion: Hashable, Sendable, Codable {
     /// Filter by values: the shown texts to hide ("" stands for empty cells).
     public var hiddenValues: Set<String>
     /// Filter by condition: rows whose cell fails it are hidden.
@@ -178,7 +178,7 @@ public struct FilterCriterion: Hashable, Sendable {
 }
 
 /// Data ▸ Create a filter: one per sheet.
-public struct SheetFilter: Hashable, Sendable {
+public struct SheetFilter: Hashable, Sendable, Codable {
     /// The filtered block; its first row holds the column headers and is never hidden.
     public var range: CellRange
     /// Criteria by column index.
@@ -191,7 +191,7 @@ public struct SheetFilter: Hashable, Sendable {
 }
 
 /// Format ▸ Alternating colors.
-public struct Banding: Hashable, Sendable, Identifiable {
+public struct Banding: Hashable, Sendable, Identifiable, Codable {
     public var id: UUID
     public var range: CellRange
     /// The first row's color; nil when the range has no header row.
@@ -222,7 +222,7 @@ public struct Banding: Hashable, Sendable, Identifiable {
 }
 
 /// Data ▸ Named ranges: a name formulas can use instead of a reference.
-public struct NamedRange: Hashable, Sendable {
+public struct NamedRange: Hashable, Sendable, Codable {
     /// Letters, digits and underscores, starting with a letter or underscore, and not a cell reference.
     public var name: String
     /// A reference without "=", usually with its sheet: "Sheet1!$A$1:$B$10".

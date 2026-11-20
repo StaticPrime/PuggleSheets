@@ -24,8 +24,7 @@ extension SpreadsheetController {
         let band = shiftDown ? CellRange(rows: range.start.row...(sheet.rowCount - 1), columns: range.columns)
             : CellRange(rows: range.rows, columns: range.start.column...(sheet.columnCount - 1))
         guard protectionAllows(range: band) else { return }
-        let index = activeSheetIndex
-        performWorkbookEdit(actionName: "Insert Cells") { $0.apply(.insertCells(range, shiftDown: shiftDown), toSheet: index) }
+        performOps([.structure(sheet: activeSheetID, change: .insertCells(range, shiftDown: shiftDown))], actionName: "Insert Cells")
     }
 
     /// Edit ▸ Delete ▸ Cells: removes the selected cells and pulls the cells below (or to the right) into their place.
@@ -35,10 +34,8 @@ extension SpreadsheetController {
         let band = shiftUp ? CellRange(rows: range.start.row...(sheet.rowCount - 1), columns: range.columns)
             : CellRange(rows: range.rows, columns: range.start.column...(sheet.columnCount - 1))
         guard protectionAllows(range: band) else { return }
-        let index = activeSheetIndex
-        performWorkbookEdit(actionName: "Delete Cells", selection: GridSelection(range: range, active: range.start)) {
-            $0.apply(.deleteCells(range, shiftUp: shiftUp), toSheet: index)
-        }
+        performOps([.structure(sheet: activeSheetID, change: .deleteCells(range, shiftUp: shiftUp))], actionName: "Delete Cells",
+                   selection: GridSelection(range: range, active: range.start))
     }
 
     // MARK: Split text to columns

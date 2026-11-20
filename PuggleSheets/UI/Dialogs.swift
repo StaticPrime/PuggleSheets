@@ -43,6 +43,7 @@ struct ShortcutsView: View {
                 ("Find / find and replace", "⌘F / ⇧⌘H"),
                 ("Insert link", "⌘K"),
                 ("Insert comment / note", "⌥⌘M / ⇧F2"),
+                ("Collaborate", "⌥⌘C"),
                 ("Show formulas", "⌃`"),
                 ("Group / ungroup", "⌥⇧→ / ⌥⇧←"),
                 ("Convert to table", "⌥⌘T"),

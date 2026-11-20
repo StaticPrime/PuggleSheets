@@ -47,16 +47,14 @@ extension SpreadsheetController {
         let count = range.rowCount
         let at = above ? range.start.row : range.end.row + 1
         guard protectionAllowsInsert(at: at, rows: true) else { return }
-        let index = activeSheetIndex
         var moved = selection
         if above {
             moved.active = moved.active.offsetBy(rows: count)
             moved.anchor = moved.anchor.offsetBy(rows: count)
             moved.ranges = moved.ranges.map { $0.start.row >= at ? $0.offsetBy(rows: count) : $0 }
         }
-        performWorkbookEdit(actionName: count == 1 ? "Insert Row" : "Insert Rows", selection: moved) {
-            $0.apply(.insertRows(at: at, count: count), toSheet: index)
-        }
+        performOps([.structure(sheet: activeSheetID, change: .insertRows(at: at, count: count))],
+                   actionName: count == 1 ? "Insert Row" : "Insert Rows", selection: moved)
     }
 
     func insertColumns(left: Bool) {
@@ -64,16 +62,14 @@ extension SpreadsheetController {
         let count = range.columnCount
         let at = left ? range.start.column : range.end.column + 1
         guard protectionAllowsInsert(at: at, rows: false) else { return }
-        let index = activeSheetIndex
         var moved = selection
         if left {
             moved.active = moved.active.offsetBy(columns: count)
             moved.anchor = moved.anchor.offsetBy(columns: count)
             moved.ranges = moved.ranges.map { $0.start.column >= at ? $0.offsetBy(columns: count) : $0 }
         }
-        performWorkbookEdit(actionName: count == 1 ? "Insert Column" : "Insert Columns", selection: moved) {
-            $0.apply(.insertColumns(at: at, count: count), toSheet: index)
-        }
+        performOps([.structure(sheet: activeSheetID, change: .insertColumns(at: at, count: count))],
+                   actionName: count == 1 ? "Insert Column" : "Insert Columns", selection: moved)
     }
 
     /// False when the selection covers every row (a sheet keeps at least one).
@@ -86,14 +82,11 @@ extension SpreadsheetController {
         for run in Self.runs(rows) {
             guard protectionAllows(range: CellRange(rows: run, columns: 0...(sheet.columnCount - 1))) else { return }
         }
-        let index = activeSheetIndex
         let remaining = sheet.rowCount - rows.count
         let next = GridSelection(CellAddress(row: min(rows[0], remaining - 1), column: selection.active.column))
-        performWorkbookEdit(actionName: rows.count == 1 ? "Delete Row" : "Delete Rows", selection: next) { workbook in
-            for run in Self.runs(rows).reversed() {
-                workbook.apply(.deleteRows(at: run.lowerBound, count: run.count), toSheet: index)
-            }
-        }
+        let id = activeSheetID
+        performOps(Self.runs(rows).reversed().map { .structure(sheet: id, change: .deleteRows(at: $0.lowerBound, count: $0.count)) },
+                   actionName: rows.count == 1 ? "Delete Row" : "Delete Rows", selection: next)
     }
 
     func deleteSelectedColumns() {
@@ -102,14 +95,11 @@ extension SpreadsheetController {
         for run in Self.runs(columns) {
             guard protectionAllows(range: CellRange(rows: 0...(sheet.rowCount - 1), columns: run)) else { return }
         }
-        let index = activeSheetIndex
         let remaining = sheet.columnCount - columns.count
         let next = GridSelection(CellAddress(row: selection.active.row, column: min(columns[0], remaining - 1)))
-        performWorkbookEdit(actionName: columns.count == 1 ? "Delete Column" : "Delete Columns", selection: next) { workbook in
-            for run in Self.runs(columns).reversed() {
-                workbook.apply(.deleteColumns(at: run.lowerBound, count: run.count), toSheet: index)
-            }
-        }
+        let id = activeSheetID
+        performOps(Self.runs(columns).reversed().map { .structure(sheet: id, change: .deleteColumns(at: $0.lowerBound, count: $0.count)) },
+                   actionName: columns.count == 1 ? "Delete Column" : "Delete Columns", selection: next)
     }
 
     /// The "Add more rows at the bottom" button.
@@ -194,7 +184,7 @@ extension SpreadsheetController {
 
     func addSheet() {
         let new = Sheet(name: workbook.newSheetName())
-        performWorkbookEdit(actionName: "Add Sheet", showing: new.id) { $0.sheets.append(new) }
+        performOps([.insertSheet(sheet: new, at: workbook.sheets.count)], actionName: "Add Sheet", showing: new.id)
     }
 
     func duplicateSheet(id: UUID) {
@@ -202,14 +192,19 @@ extension SpreadsheetController {
         let original = workbook.sheets[index]
         var copy = Sheet(name: workbook.copyName(for: original.name), rowCount: original.rowCount, columnCount: original.columnCount)
         SheetLayout(original).apply(to: &copy)
-        copy.setCells(original.cells)
-        performWorkbookEdit(actionName: "Duplicate Sheet", showing: copy.id) { $0.sheets.insert(copy, at: index + 1) }
+        // The copy's comments are discussions of their own, apart from the original's.
+        copy.setCells(original.cells.mapValues { cell in
+            var cell = cell
+            cell.comment = cell.comment?.copiedAnew()
+            return cell
+        })
+        performOps([.insertSheet(sheet: copy, at: index + 1)], actionName: "Duplicate Sheet", showing: copy.id)
     }
 
     func deleteSheet(id: UUID) {
         guard workbook.sheets.count > 1, let index = workbook.sheetIndex(id: id) else { return }
         let neighbor = workbook.sheets[index == workbook.sheets.count - 1 ? index - 1 : index + 1].id
-        performWorkbookEdit(actionName: "Delete Sheet", showing: neighbor) { $0.removeSheet(at: index) }
+        performOps([.removeSheet(sheet: id)], actionName: "Delete Sheet", showing: neighbor)
     }
 
     /// Why `name` can't be used for the sheet, or nil when it can.
@@ -230,14 +225,14 @@ extension SpreadsheetController {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard problem(renaming: id, to: trimmed) == nil, let index = workbook.sheetIndex(id: id),
               workbook.sheets[index].name != trimmed else { return }
-        performWorkbookEdit(actionName: "Rename Sheet") { $0.renameSheet(at: index, to: trimmed) }
+        performOps([.renameSheet(sheet: id, name: trimmed)], actionName: "Rename Sheet")
     }
 
     func moveSheet(id: UUID, by offset: Int) {
         guard let index = workbook.sheetIndex(id: id) else { return }
         let destination = index + offset
         guard destination >= 0, destination < workbook.sheets.count else { return }
-        performWorkbookEdit(actionName: "Move Sheet") { $0.sheets.swapAt(index, destination) }
+        performOps([.moveSheet(sheet: id, to: destination)], actionName: "Move Sheet")
     }
 
     func setTabColor(id: UUID, _ color: RGBColor?) {

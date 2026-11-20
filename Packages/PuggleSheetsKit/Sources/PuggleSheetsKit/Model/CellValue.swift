@@ -34,8 +34,8 @@ public enum CellValue: Hashable, Sendable {
 
 /// A formula error such as #DIV/0!. Two errors are equal when their kinds match; the message is
 /// the explanation shown when hovering the cell ("Function DIVIDE parameter 2 cannot be zero.").
-public struct CellError: Error, Hashable, Sendable, CustomStringConvertible {
-    public enum Kind: String, CaseIterable, Sendable {
+public struct CellError: Error, Hashable, Sendable, CustomStringConvertible, Codable {
+    public enum Kind: String, CaseIterable, Sendable, Codable {
         case null = "#NULL!"
         case divideByZero = "#DIV/0!"
         case value = "#VALUE!"

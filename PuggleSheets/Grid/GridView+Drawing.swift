@@ -508,7 +508,7 @@ extension GridView {
             preview.lineWidth = 1
             GridColors.fillPreview.setStroke()
             preview.stroke()
-        } else if editor == nil {
+        } else if editor == nil, canChange {
             let current = rect(for: selection.current, xMode: pane.xMode, yMode: pane.yMode)
             let handle = CGRect(x: current.maxX - 3.5, y: current.maxY - 3.5, width: 6, height: 6)
             NSColor.white.setFill()
@@ -665,7 +665,7 @@ extension GridView {
 
     /// The "Add 1000 more rows at the bottom" button, when the last row is in view.
     var footerButtonRect: CGRect? {
-        guard let footer = footerRect else { return nil }
+        guard canChange, let footer = footerRect else { return nil }
         let font = NSFont.systemFont(ofSize: 13)
         let width = (Self.footerTitle as NSString).size(withAttributes: [.font: font]).width + 28
         return CGRect(x: headerWidth + 12, y: footer.minY + 16, width: width, height: 32)

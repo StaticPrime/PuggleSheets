@@ -74,6 +74,8 @@ import PuggleSheetsKit
     func psInsertNote(_ sender: Any?)
     func psClearNotes(_ sender: Any?)
     func psInsertComment(_ sender: Any?)
+    func psCollaborate(_ sender: Any?)
+    func psLeaveShared(_ sender: Any?)
     func psShowComments(_ sender: Any?)
     func psProtect(_ sender: Any?)
     func psToggleShowProtectedRanges(_ sender: Any?)
@@ -224,6 +226,10 @@ enum MenuBuilder {
             .separator(),
             item("Make a copy", #selector(NSDocument.duplicate(_:)), "s", [.command, .shift], symbol: "plus.square.on.square"),
             .separator(),
+            item("Collaborate…", #selector(SheetCommands.psCollaborate(_:)), "c", [.command, .option], symbol: "person.2"),
+            item("Leave shared spreadsheet…", #selector(SheetCommands.psLeaveShared(_:)), symbol: "rectangle.portrait.and.arrow.right"),
+            sharedSpreadsheetsMenu(),
+            .separator(),
             item("Save", #selector(NSDocument.save(_:)), "s", symbol: "square.and.arrow.down"),
             submenu("Download", symbol: "arrow.down.to.line", downloadItems()),
             item("Rename", #selector(SheetCommands.psRename(_:)), symbol: "pencil"),
@@ -238,6 +244,13 @@ enum MenuBuilder {
             .separator(),
             item("Close", #selector(NSWindow.performClose(_:)), "w"),
         ]
+    }
+
+    /// File ▸ Shared spreadsheets: those shared with this person, and theirs that are shared, filled in as it opens.
+    private static func sharedSpreadsheetsMenu() -> NSMenuItem {
+        let item = submenu("Shared spreadsheets", symbol: "person.2.circle", [])
+        item.submenu?.delegate = SharedSpreadsheetsMenu.shared
+        return item
     }
 
     private static func editItems() -> [NSMenuItem] {
@@ -502,6 +515,75 @@ final class FilterViewsMenu: NSObject, NSMenuDelegate {
         if controller.activeFilterView != nil {
             menu.addItem(.separator())
             menu.addItem(MenuBuilder.item("Close filter view", #selector(SheetCommands.psCloseFilterView(_:))))
+        }
+    }
+}
+
+/// Fills File ▸ Shared spreadsheets each time it opens.
+final class SharedSpreadsheetsMenu: NSObject, NSMenuDelegate {
+    static let shared = SharedSpreadsheetsMenu()
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        guard let controller = CollaborationController.shared else { return }
+        let others = controller.sharedWithMe
+        let mine = controller.mine
+        if case let .unavailable(reason) = controller.status {
+            let item = NSMenuItem(title: reason, action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        }
+        if !others.isEmpty {
+            menu.addItem(sectionHeader("Shared with you"))
+            for entry in others {
+                let item = NSMenuItem(title: entry.title, action: #selector(open(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = entry.id.uuidString
+                item.toolTip = entry.ownerName.isEmpty ? nil : "Shared by \(entry.ownerName)"
+                item.image = NSImage(systemSymbolName: "tablecells", accessibilityDescription: nil)
+                menu.addItem(item)
+            }
+        }
+        if !mine.isEmpty {
+            if !others.isEmpty { menu.addItem(.separator()) }
+            menu.addItem(sectionHeader("Shared by you"))
+            for (id, title) in mine {
+                let item = NSMenuItem(title: title, action: #selector(open(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = id.uuidString
+                item.image = NSImage(systemSymbolName: "person.2", accessibilityDescription: nil)
+                menu.addItem(item)
+            }
+        }
+        if others.isEmpty, mine.isEmpty {
+            let item = NSMenuItem(title: "No shared spreadsheets", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
+        let link = NSMenuItem(title: "Open Invitation Link…", action: #selector(openLink(_:)), keyEquivalent: "")
+        link.target = self
+        link.image = NSImage(systemSymbolName: "link", accessibilityDescription: nil)
+        menu.addItem(link)
+    }
+
+    @objc private func openLink(_ sender: Any?) {
+        CollaborationController.shared?.askForInvitationLink()
+    }
+
+    private func sectionHeader(_ title: String) -> NSMenuItem {
+        if #available(macOS 14, *) { return NSMenuItem.sectionHeader(title: title) }
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        return item
+    }
+
+    @objc private func open(_ sender: NSMenuItem) {
+        guard let controller = CollaborationController.shared, let id = (sender.representedObject as? String).flatMap(UUID.init(uuidString:)) else { return }
+        if let entry = controller.sharedWithMe.first(where: { $0.id == id }) {
+            controller.openShared(entry)
+        } else if let me = controller.status.me {
+            controller.openShared(SharedDocumentEntry(id: id, title: sender.title, ownerName: me.name, ownerID: me.id))
         }
     }
 }

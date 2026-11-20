@@ -2,7 +2,7 @@ import Foundation
 
 /// Where an object floating over the grid sits: the cell its top-left corner is in, how far into that
 /// cell, and its size, all in pixels at 100% zoom.
-public struct ObjectAnchor: Hashable, Sendable {
+public struct ObjectAnchor: Hashable, Sendable, Codable {
     public var cell: CellAddress
     public var offsetX: Double
     public var offsetY: Double
@@ -20,8 +20,8 @@ public struct ObjectAnchor: Hashable, Sendable {
 
 /// An image file's bytes, format and size in pixels. Other formats are converted to PNG before they
 /// get here.
-public struct ImageData: Hashable, Sendable {
-    public enum Format: String, CaseIterable, Sendable {
+public struct ImageData: Hashable, Sendable, Codable {
+    public enum Format: String, CaseIterable, Sendable, Codable {
         case png, jpeg, gif
 
         public var fileExtension: String {
@@ -103,7 +103,7 @@ public struct ImageData: Hashable, Sendable {
 }
 
 /// An image inside a cell (Insert ▸ Image ▸ Insert image in cell), drawn fitted to the cell.
-public struct CellImage: Hashable, Sendable {
+public struct CellImage: Hashable, Sendable, Codable {
     public var image: ImageData
     /// Alt text.
     public var altText: String
@@ -115,8 +115,8 @@ public struct CellImage: Hashable, Sendable {
 }
 
 /// Something floating over the grid: an image (Insert ▸ Image ▸ Insert image over cells) or a chart.
-public struct SheetObject: Identifiable, Hashable, Sendable {
-    public enum Content: Hashable, Sendable {
+public struct SheetObject: Identifiable, Hashable, Sendable, Codable {
+    public enum Content: Hashable, Sendable, Codable {
         case image(ImageData)
         case chart(ChartSpec)
         case slicer(SlicerSpec)

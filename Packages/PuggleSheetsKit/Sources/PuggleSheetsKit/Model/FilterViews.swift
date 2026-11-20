@@ -2,7 +2,7 @@ import Foundation
 
 /// Data ▸ Filter views: a saved filter with a name. Opening one hides rows only in the window that
 /// shows it; the sheet's own filter and data stay as they are.
-public struct FilterView: Identifiable, Hashable, Sendable {
+public struct FilterView: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     public var name: String
     public var range: CellRange

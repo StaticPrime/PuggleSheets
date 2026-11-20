@@ -18,6 +18,7 @@ protocol ChromeActions: AnyObject {
     func togglePaintFormat()
     func applyBorders(_ kind: BorderKind, line: BorderLine)
     func focusGrid()
+    func showCollaborate()
 }
 
 /// Header, toolbar and info banner above the formula bar.
@@ -100,7 +101,8 @@ struct HeaderView: View {
                 .hoverBackground()
                 .focused($titleFocused)
                 .onSubmit { commitTitle() }
-                .help("Rename")
+                .disabled(!state.collaboration.isOwner && state.collaboration.isShared)
+                .help(state.collaboration.isShared && !state.collaboration.isOwner ? "Only its owner can rename it" : "Rename")
             if let badge = state.formatBadge {
                 Text(badge)
                     .font(.system(size: 10.5, weight: .semibold))
@@ -110,24 +112,16 @@ struct HeaderView: View {
                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(Theme.secondaryText.opacity(0.5), lineWidth: 1))
                     .help("This file is stored in \(badge.dropFirst()) format")
             }
-            Image(systemName: state.saveStatus.symbol)
+            Image(systemName: statusSymbol)
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.secondaryText)
-                .help(state.saveStatus.text)
+                .help(statusText)
             Spacer(minLength: 12)
-            Text(state.saveStatus.text)
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.secondaryText)
-                .lineLimit(1)
-            ToolbarIconButton(symbol: "text.bubble", help: "Show all comments") { actions.showComments() }
-            ToolbarIconButton(symbol: "clock.arrow.circlepath", help: "Open version history") { actions.showVersionHistory() }
-            ToolbarDropdown(help: "Download a copy", showsChevron: false, open: { actions.popUp(.download, from: $0) }) {
-                Label("Download", systemImage: "arrow.down.to.line")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color(red: 0.0, green: 0.12, blue: 0.27))
-                    .padding(.horizontal, 10)
-                    .frame(height: 30)
-                    .background(Capsule().fill(Color(red: 0.76, green: 0.87, blue: 1.0)))
+            // As the window narrows, the status words go first, then the buttons' words.
+            ViewThatFits(in: .horizontal) {
+                trailingControls(showsStatus: true, compact: false)
+                trailingControls(showsStatus: false, compact: false)
+                trailingControls(showsStatus: false, compact: true)
             }
         }
         .frame(height: TitlebarMetrics.rowHeight)
@@ -142,6 +136,67 @@ struct HeaderView: View {
         .onChange(of: state.renameRequest) { _, _ in titleFocused = true }
         .onExitCommand { titleText = state.title; titleFocused = false; actions.focusGrid() }
     }
+
+    private func trailingControls(showsStatus: Bool, compact: Bool) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            if showsStatus {
+                Text(statusText)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.secondaryText)
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+            CollaboratorAvatars(state: state.collaboration)
+            ToolbarIconButton(symbol: "text.bubble", help: "Show all comments") { actions.showComments() }
+            ToolbarIconButton(symbol: "clock.arrow.circlepath", help: "Open version history") { actions.showVersionHistory() }
+            if state.showsCollaborateButton { collaborateButton(compact: compact) }
+            ToolbarDropdown(help: "Download a copy", showsChevron: false, open: { actions.popUp(.download, from: $0) }) {
+                Group {
+                    if compact {
+                        Image(systemName: "arrow.down.to.line")
+                    } else {
+                        Label("Download", systemImage: "arrow.down.to.line")
+                    }
+                }
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color(red: 0.0, green: 0.12, blue: 0.27))
+                .padding(.horizontal, 10)
+                .frame(height: 30)
+                .background(Capsule().fill(Color(red: 0.76, green: 0.87, blue: 1.0)))
+                .fixedSize()
+            }
+        }
+    }
+
+    private var collaborateSymbol: String { state.collaboration.isShared ? "person.2.fill" : "person.badge.plus" }
+
+    /// The Collaborate button, for spreadsheets of this person's: those shared with them don't have it.
+    private func collaborateButton(compact: Bool) -> some View {
+        Button { actions.showCollaborate() } label: {
+            Group {
+                if compact {
+                    Image(systemName: collaborateSymbol)
+                } else {
+                    Label("Collaborate", systemImage: collaborateSymbol)
+                }
+            }
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(Color.white)
+            .padding(.horizontal, compact ? 10 : 12)
+            .frame(height: 30)
+            .background(Capsule().fill(Theme.accent))
+            .contentShape(Capsule())
+            .fixedSize()
+        }
+        .buttonStyle(.plain)
+        .focusable(false)
+        .help(state.collaboration.isShared ? "See and change who this spreadsheet is shared with" : "Share this spreadsheet with people to work on it together")
+        .accessibilityLabel("Collaborate")
+    }
+
+    /// While shared, how its iCloud copy is keeping up; otherwise how its file is.
+    private var statusText: String { state.collaboration.isShared ? state.collaboration.statusText : state.saveStatus.text }
+    private var statusSymbol: String { state.collaboration.isShared ? state.collaboration.statusSymbol : state.saveStatus.symbol }
 
     private func commitTitle() {
         let trimmed = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -177,6 +232,15 @@ struct FormattingToolbar: View {
                 row(overflowFrom: 4)
             }
             Spacer(minLength: 0)
+            // A shared spreadsheet that can only be commented on here, or not changed at all just now, says so.
+            if let badge = state.accessBadge {
+                Label(badge.title, systemImage: badge.symbol)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.secondaryText)
+                    .padding(.horizontal, 8)
+                    .fixedSize()
+                    .help(state.access == .offline ? "Changes can’t be saved until iCloud can be reached" : "You can comment, but not change the cells")
+            }
         }
         .padding(.horizontal, 8)
         .frame(height: 40)
@@ -187,7 +251,7 @@ struct FormattingToolbar: View {
         HStack(spacing: 1) {
             ForEach(0..<min(overflowFrom, groupCount), id: \.self) { index in
                 if index > 0 { ToolbarDivider() }
-                group(index)
+                group(index).disabled(index >= 2 && !state.isEditable)
             }
             if overflowFrom < groupCount {
                 ToolbarDivider()
@@ -196,7 +260,7 @@ struct FormattingToolbar: View {
                         HStack(spacing: 1) {
                             ForEach(overflowFrom..<groupCount, id: \.self) { index in
                                 if index > overflowFrom { ToolbarDivider() }
-                                group(index)
+                                group(index).disabled(index >= 2 && !state.isEditable)
                             }
                         }
                         .padding(8)
@@ -225,7 +289,9 @@ struct FormattingToolbar: View {
         HStack(spacing: 1) {
             ToolbarIconButton(symbol: "arrow.uturn.backward", help: "Undo (⌘Z)", isEnabled: state.canUndo) { controller.undoManager?.undo() }
             ToolbarIconButton(symbol: "arrow.uturn.forward", help: "Redo (⇧⌘Z)", isEnabled: state.canRedo) { controller.undoManager?.redo() }
-            ToolbarIconButton(symbol: "paintbrush.pointed", help: "Paint format", isOn: state.isPaintFormatActive) { actions.togglePaintFormat() }
+            ToolbarIconButton(symbol: "paintbrush.pointed", help: "Paint format", isOn: state.isPaintFormatActive, isEnabled: state.isEditable) {
+                actions.togglePaintFormat()
+            }
         }
     }
 

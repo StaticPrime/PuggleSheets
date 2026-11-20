@@ -10,6 +10,19 @@ final class LocalUndoFieldEditor: NSTextView {
     override var undoManager: UndoManager? { localUndoManager }
 }
 
+/// A spreadsheet's window. While its shared spreadsheet can't save to iCloud it has no undo manager, so Undo and Redo do
+/// nothing and the spreadsheet's own steps wait, untouched, until iCloud's back.
+final class DocumentWindow: NSWindow {
+    var pausesUndo: () -> Bool = { false }
+
+    override var undoManager: UndoManager? { pausesUndo() ? nil : super.undoManager }
+
+    override func validateUserInterfaceItem(_ item: any NSValidatedUserInterfaceItem) -> Bool {
+        if pausesUndo(), item.action == Selector(("undo:")) || item.action == Selector(("redo:")) { return false }
+        return super.validateUserInterfaceItem(item)
+    }
+}
+
 final class DocumentWindowController: NSWindowController, NSWindowDelegate, ChromeActions, SheetBarActions, SidebarActions {
     let state = EditorState()
     let controller: SpreadsheetController
@@ -55,9 +68,10 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, Chro
         find = FindController(controller: controller, grid: grid)
         findReplace = FindReplaceController(controller: controller, grid: grid)
         currentSheetID = controller.activeSheetID
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860),
-                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-                              backing: .buffered, defer: false)
+        let window = DocumentWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 860),
+                                    styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                                    backing: .buffered, defer: false)
+        window.pausesUndo = { [weak state] in state?.access == .offline }
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.titlebarSeparatorStyle = .none
@@ -165,18 +179,27 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, Chro
         controller.onRejectedInput = { [weak self] message in self?.showRejectedInput(message) }
         controller.onProblem = { [weak self] message in self?.showProblem(message) }
         document.onStatusChange = { [weak self] in self?.updateStatus() }
-        document.onReload = { [weak self] in self?.controller.reloadFromDocument() }
+        document.onReload = { [weak self] in
+            guard let self else { return }
+            // A shared spreadsheet's file read again (another app changed it) goes back to its shared copy.
+            if let collaboration = self.controller.collaboration, collaboration.isLive {
+                collaboration.restoreFromLog()
+            } else {
+                self.controller.reloadFromDocument()
+            }
+        }
 
         grid.menuProvider = { [weak self] location in self?.contextMenu(for: location) }
         grid.onFilterButton = { [weak self] column, rect in self?.showFilterPopover(column: column, at: rect) }
         grid.onObjectMenu = { [weak self] id, rect in self?.showObjectMenu(id, at: rect) }
         grid.objectMenuProvider = { [weak self] id in self?.objectMenu(for: id) }
         grid.onObjectDoubleClick = { [weak self] id in
-            guard let self, let object = self.controller.object(id: id) else { return }
+            guard let self, let object = self.controller.object(id: id), object.chart != nil || object.slicer != nil,
+                  self.allowsChanges() else { return }
             if object.chart != nil { self.showChartEditor(id) }
             if object.slicer != nil { self.showSlicerEditor(id) }
         }
-        grid.onEditPivot = { [weak self] id in self?.showPivotEditor(id) }
+        grid.onEditPivot = { [weak self] id in if self?.allowsChanges() == true { self?.showPivotEditor(id) } }
         grid.onTableControl = { [weak self] id, column, rect in self?.handleTableControl(id, column: column, rect: rect) }
         grid.onSlicerDropdown = { [weak self] id, rect in self?.showSlicerFilter(id, at: rect) }
         grid.onViewportChange = { [weak self] in
@@ -295,8 +318,10 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, Chro
         if state.statisticsFormat != statisticsFormat { state.statisticsFormat = statisticsFormat }
         let reference = selection.current.a1
         if state.selectionReference != reference { state.selectionReference = reference }
-        state.canUndo = controller.undoManager?.canUndo ?? false
-        state.canRedo = controller.undoManager?.canRedo ?? false
+        // While a shared spreadsheet can't save to iCloud, nothing in it changes, undo included.
+        let undoes = state.access != .offline
+        state.canUndo = undoes && (controller.undoManager?.canUndo ?? false)
+        state.canRedo = undoes && (controller.undoManager?.canRedo ?? false)
         if grid.editor == nil {
             let address = selection.active
             if sheet.cells[address]?.hasContent != true, sheet.pivotTable(covering: address) != nil {
@@ -333,6 +358,12 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, Chro
     override func synchronizeWindowTitleWithDocumentName() {
         super.synchronizeWindowTitleWithDocumentName()
         updateStatus()
+        // A shared spreadsheet of this person's that moved or was renamed is still found by its new name, and everyone
+        // it's shared with sees the new name.
+        if let document = spreadsheet, let collaboration = document.collaboration, collaboration.isOwner, let url = document.fileURL {
+            CollaborationController.shared?.link(collaboration.id, to: url)
+            collaboration.titleChanged()
+        }
     }
 
     func updateStatus() {
@@ -343,7 +374,9 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, Chro
         }
         state.title = title
         state.formatBadge = document.fileURL == nil ? nil : document.format?.badge
-        if document.fileURL == nil {
+        if document.sharedCopy != nil {
+            state.saveStatus = .saved
+        } else if document.fileURL == nil {
             state.saveStatus = .draft
         } else {
             state.saveStatus = document.isDocumentEdited ? .edited : .saved
@@ -463,7 +496,8 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, Chro
     // MARK: ChromeActions
 
     func rename(to title: String) {
-        guard let document = spreadsheet else { return }
+        // A spreadsheet shared with this person is named by its owner.
+        guard let document = spreadsheet, document.sharedCopy == nil else { return }
         guard let url = document.fileURL else {
             document.customTitle = title
             synchronizeWindowTitleWithDocumentName()
@@ -589,7 +623,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, Chro
 
     func showFilterPopover(column: Int, at rect: CGRect) {
         finishEditing()
-        guard let filter = controller.displayedFilter else { return }
+        guard let filter = controller.displayedFilter, allowsChanges() else { return }
         let popover = NSPopover()
         popover.behavior = .transient
         popover.appearance = NSAppearance(named: .aqua)
@@ -667,11 +701,15 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, Chro
 
     func sheetMenu(for id: UUID) -> NSMenu {
         let menu = NSMenu()
+        // Every item changes the spreadsheet, so none works while it can't be changed.
+        let editable = state.isEditable
+        menu.autoenablesItems = false
         func add(_ title: String, _ action: @escaping () -> Void) {
             let item = NSMenuItem(title: title, action: #selector(MenuAction.perform(_:)), keyEquivalent: "")
             let handler = MenuAction(action)
             item.target = handler
             item.representedObject = handler
+            item.isEnabled = editable
             menu.addItem(item)
         }
         add("Delete") { [weak self] in self?.deleteSheet(id) }
@@ -697,6 +735,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, Chro
             colorMenu.addItem(item)
         }
         colors.submenu = colorMenu
+        colors.isEnabled = editable
         menu.addItem(colors)
         menu.addItem(.separator())
         add("Move right") { [weak self] in self?.moveSheet(id, by: 1) }

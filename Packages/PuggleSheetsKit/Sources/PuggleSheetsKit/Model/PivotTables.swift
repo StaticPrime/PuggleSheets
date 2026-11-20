@@ -3,7 +3,7 @@ import Foundation
 /// Insert ▸ Pivot table: a summary of source data, shown from `anchor` down and to the right. Its
 /// results behave like a spilling formula's: the formula engine places them in the sheet's spilled
 /// values, and data in the way shows #REF! in the anchor cell.
-public struct PivotTable: Identifiable, Hashable, Sendable {
+public struct PivotTable: Identifiable, Hashable, Sendable, Codable {
     public let id: UUID
     /// The pivot table's top-left cell, on the sheet that holds it.
     public var anchor: CellAddress
@@ -57,7 +57,7 @@ public struct PivotTable: Identifiable, Hashable, Sendable {
 }
 
 /// A row or column group: one entry per distinct value of a source column.
-public struct PivotGroup: Hashable, Sendable {
+public struct PivotGroup: Hashable, Sendable, Codable {
     /// Index into the source range's columns (0 is its first column).
     public var sourceColumn: Int
     public var ascending: Bool
@@ -75,14 +75,14 @@ public struct PivotGroup: Hashable, Sendable {
 }
 
 /// A summarized value.
-public struct PivotValue: Hashable, Sendable {
-    public enum Summary: String, CaseIterable, Sendable {
+public struct PivotValue: Hashable, Sendable, Codable {
+    public enum Summary: String, CaseIterable, Sendable, Codable {
         case sum = "SUM", countA = "COUNTA", count = "COUNT", countUnique = "COUNTUNIQUE", average = "AVERAGE"
         case max = "MAX", min = "MIN", median = "MEDIAN", product = "PRODUCT"
         case stdev = "STDEV", stdevp = "STDEVP", variance = "VAR", variancep = "VARP"
     }
 
-    public enum ShowAs: String, CaseIterable, Sendable {
+    public enum ShowAs: String, CaseIterable, Sendable, Codable {
         case `default`, percentOfRow, percentOfColumn, percentOfGrandTotal
     }
 
@@ -101,7 +101,7 @@ public struct PivotValue: Hashable, Sendable {
 }
 
 /// Leaves out source rows, by values or by a condition (the same choices as a sheet filter).
-public struct PivotFilter: Hashable, Sendable {
+public struct PivotFilter: Hashable, Sendable, Codable {
     public var sourceColumn: Int
     public var criterion: FilterCriterion
 

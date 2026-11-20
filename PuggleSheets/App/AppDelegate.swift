@@ -1,17 +1,40 @@
 import AppKit
+import CloudKit
 import PuggleSheetsKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSApp.mainMenu = MenuBuilder.makeMainMenu()
         UserDefaults.standard.register(defaults: ["NSFullScreenMenuItemEverywhere": false])
+        CollaborationController.shared = CollaborationController(service: makeCollaborationService())
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        CollaborationController.shared.start()
         #if DEBUG
         DebugLaunchOptions.runIfRequested()
         SelfTest.runIfRequested()
         #endif
+    }
+
+    /// iCloud, where spreadsheets are shared; in debug runs that ask for it, a stand-in for it.
+    private func makeCollaborationService() -> CollaborationService {
+        #if DEBUG
+        if StandInCloud.isRequested { return StandInCollaboration(me: StandInCloud.me, cloud: .shared) }
+        #endif
+        if CloudKitCollaboration.isEntitled { return CloudKitCollaboration() }
+        return UnavailableCollaboration(reason: "Sharing goes through iCloud, which this copy of PuggleSheets isn’t signed to use.")
+    }
+
+    // MARK: Shared spreadsheets
+
+    /// Joins a spreadsheet someone shared, from the link they sent, and opens it.
+    func application(_ application: NSApplication, userDidAcceptCloudKitShareWith metadata: CKShare.Metadata) {
+        CollaborationController.shared.accept(metadata)
+    }
+
+    func application(_ application: NSApplication, didReceiveRemoteNotification userInfo: [String: Any]) {
+        CollaborationController.shared.receivedPush(userInfo)
     }
 
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool { true }
@@ -157,15 +180,20 @@ enum DebugLaunchOptions {
                let rect = controller.grid.filterButtonRect(column: index) {
                 controller.showFilterPopover(column: index, at: rect)
             }
+            if defaults.bool(forKey: "PSCollaborationDemo") { CollaborationDemo.start(controller) }
             switch defaults.string(forKey: "PSOpenSheet") {
             case "shortcuts": controller.psShowShortcuts(nil)
+            case "collaborate":
+                DispatchQueue.main.asyncAfter(deadline: .now() + (defaults.bool(forKey: "PSCollaborationDemo") ? 1.6 : 0)) {
+                    controller.showCollaborate()
+                }
             default: break
             }
             if defaults.bool(forKey: "PSShowAbout"), let appMenu = NSApp.mainMenu?.items.first?.submenu {
                 appMenu.performActionForItem(at: appMenu.indexOfItem(withTitle: "About PuggleSheets"))
             }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + (defaults.bool(forKey: "PSCollaborationDemo") ? 5.0 : 2.5)) {
             guard let documentWindow = NSApp.windows.first(where: { $0.windowController is DocumentWindowController }),
                   case let about = NSApp.windows.first(where: { $0.windowController is AboutWindowController && $0.isVisible }),
                   case let popover = NSApp.windows.first(where: { String(describing: type(of: $0)).contains("Popover") && $0.isVisible }),
@@ -187,6 +215,45 @@ enum DebugLaunchOptions {
             // Exit directly: quitting normally would wait on any open sheet or unsaved-changes prompt.
             fflush(stdout)
             exit(0)
+        }
+    }
+}
+
+/// `-PSCollaborationDemo YES` (with `-PSStandInCloud YES`) shares the window's spreadsheet on the stand-in "iCloud"
+/// with two people, who open it, type and comment, for screenshots of a shared spreadsheet. `-PSDemoOffline YES` then
+/// takes this Mac offline, to show a shared spreadsheet while iCloud can't be reached.
+enum CollaborationDemo {
+    static let ana = StandInPerson(Collaborator(id: "ana@example.com", name: "Ana Lopez", address: "ana@example.com"))
+    static let ben = StandInPerson(Collaborator(id: "ben@example.com", name: "Ben Carter", address: "ben@example.com"))
+
+    static func start(_ controller: DocumentWindowController) {
+        guard let document = controller.spreadsheet else { return }
+        SpreadsheetCollaboration.noticeDelay = 3
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Team budget.xlsx")
+        document.save(to: url, ofType: SpreadsheetFileFormat.xlsx.typeIdentifier, for: .saveAsOperation) { _ in
+            MainActor.assumeIsolated {
+                CollaborationController.shared.share(document, in: controller, access: .invited, permission: .edit) { _ in
+                    guard let id = document.collaboration?.id else { return }
+                    let service = CollaborationController.shared.service
+                    service.invite("ana@example.com", permission: .edit, to: id) { result in
+                        if case let .success(sharing) = result { document.collaboration?.sharingUpdated(sharing) }
+                    }
+                    service.invite("ben@example.com", permission: .comment, to: id) { result in
+                        if case let .success(sharing) = result { document.collaboration?.sharingUpdated(sharing) }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        ana.join(id)
+                        ben.join(id)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                        ana.type("Updated by Ana", in: "A1")
+                        ben.comment("Can we add a column for next month?", on: "B2")
+                    }
+                    if UserDefaults.standard.bool(forKey: "PSDemoOffline") {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { StandInCloud.shared.isReachable = false }
+                    }
+                }
+            }
         }
     }
 }

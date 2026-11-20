@@ -90,6 +90,12 @@ extension GridView: NSTextViewDelegate {
     /// Starts editing the active cell. `text` replaces its content (typing over it); nil edits the existing content.
     func beginEditing(replacingWith text: String? = nil, entry: CellEditor.Entry) {
         guard editor == nil else { return }
+        // A shared spreadsheet that can only be commented on (or hasn't come yet) can't be typed into.
+        guard controller.state.isEditable else {
+            NSSound.beep()
+            if controller.state.access == .offline { controller.collaboration?.explainOffline() }
+            return
+        }
         let address = controller.selection.active
         scrollToVisible(address)
         let editor = CellEditor(address: address, sheetID: controller.activeSheetID, entry: entry)
