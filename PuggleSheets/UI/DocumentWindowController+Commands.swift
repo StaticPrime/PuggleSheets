@@ -125,7 +125,9 @@ extension DocumentWindowController: SheetCommands, NSMenuItemValidation {
 
     // MARK: File
 
-    func psRename(_ sender: Any?) { state.renameRequest += 1 }
+    /// File ▸ Rename: the name in the header, all of it selected, ready to type over. It answers the standard rename
+    /// command, so the File menu has this one Rename and macOS doesn't add a second beside Make a copy.
+    @objc(renameDocument:) func renameFromMenu(_ sender: Any?) { state.renameRequest += 1 }
 
     func psDownload(_ sender: Any?) {
         finishEditing()
@@ -475,7 +477,7 @@ extension DocumentWindowController: SheetCommands, NSMenuItemValidation {
                 return spreadsheet?.collaboration?.isOwner == false
             case #selector(SheetCommands.psInsertComment(_:)):
                 if !state.canComment { return false }
-            case #selector(SheetCommands.psRename(_:)):
+            case #selector(NSDocument.rename(_:)):
                 if spreadsheet?.sharedCopy != nil { return false }
             default:
                 if !state.isEditable, !Self.commandsThatChangeNothing.contains(action) { return false }

@@ -112,6 +112,6 @@ extension DocumentWindowController {
         #selector(SheetCommands.psToggleShowFormulas(_:)), #selector(SheetCommands.psToggleShowProtectedRanges(_:)),
         #selector(SheetCommands.psOpenFilterView(_:)), #selector(SheetCommands.psCloseFilterView(_:)),
         #selector(SheetCommands.psColumnStats(_:)), #selector(SheetCommands.psCollaborate(_:)), #selector(SheetCommands.psLeaveShared(_:)),
-        #selector(SheetCommands.psRename(_:)),
+        #selector(NSDocument.rename(_:)),
     ]
 }

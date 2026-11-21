@@ -6,7 +6,6 @@ import PuggleSheetsKit
     func psDownload(_ sender: Any?)
     func psDownloadPDF(_ sender: Any?)
     func psPrint(_ sender: Any?)
-    func psRename(_ sender: Any?)
     func psPasteValues(_ sender: Any?)
     func psPasteFormat(_ sender: Any?)
     func psDeleteValues(_ sender: Any?)
@@ -232,7 +231,8 @@ enum MenuBuilder {
             .separator(),
             item("Save", #selector(NSDocument.save(_:)), "s", symbol: "square.and.arrow.down"),
             submenu("Download", symbol: "arrow.down.to.line", downloadItems()),
-            item("Rename", #selector(SheetCommands.psRename(_:)), symbol: "pencil"),
+            // The standard rename command, answered by the window: with it here macOS adds no Rename of its own.
+            item("Rename", #selector(NSDocument.rename(_:)), symbol: "pencil"),
             item("Move…", #selector(NSDocument.move(_:)), symbol: "folder.badge.gearshape"),
             .separator(),
             submenu("Version history", symbol: "clock.arrow.circlepath", [
