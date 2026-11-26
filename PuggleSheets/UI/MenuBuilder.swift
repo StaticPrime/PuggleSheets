@@ -172,6 +172,8 @@ enum MenuBuilder {
         let menu = NSMenu(title: "PuggleSheets")
         menu.addItem(item("About PuggleSheets", #selector(AppDelegate.showAboutWindow(_:))))
         menu.addItem(.separator())
+        menu.addItem(item("Settings…", #selector(AppDelegate.showSettings(_:)), ","))
+        menu.addItem(.separator())
         let services = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
         let servicesMenu = NSMenu(title: "Services")
         services.submenu = servicesMenu
