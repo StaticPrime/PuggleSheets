@@ -102,7 +102,7 @@ Help ▸ Keyboard shortcuts (⌘/) lists every keyboard shortcut.
 - Pivot tables don't have calculated fields or date grouping. Charts don't have trendlines, error bars or the less common types (histogram, candlestick, map, gauge and so on), and can't move to their own sheet.
 - Excel and OpenDocument files don't keep data bars, icon sets, top 10, duplicate and above-average rules, or filters by color. Functions that Excel and OpenDocument don't define (such as REGEXMATCH, SPLIT and ARRAYFORMULA) are saved as they are, so other apps show `#NAME?` for them, and Excel shows a spilled array as an `{=…}` array formula.
 - Excel files keep their look, but a workbook's default font (such as Calibri 11) is stored on each cell rather than as a default, and indents, gradient fills and print settings aren't kept yet.
-- Installing an update takes an administrator's password, so someone who can't give one keeps the version they have (the banner keeps offering the new one). Version 1.1.0 and earlier don't update themselves: the first version that does has to be installed by hand.
+- Installing an update takes an administrator's password, so someone who can't give one keeps the version they have (the banner keeps offering the new one). Version 1.1.1 and earlier don't update themselves: the first version that does has to be installed by hand.
 - Updates go where the installer puts PuggleSheets, the Applications folder. A copy moved somewhere else stays as it is, and the new version opens from Applications.
 
 ## Requirements
